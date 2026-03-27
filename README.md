@@ -29,20 +29,19 @@ TalentForce Recruit is built entirely within a Salesforce org using native platf
 - AI agent serving candidates, recruiters, interviewers, and hiring managers
 
 ## Project Structure
-
-
+```
 force-app/
   main/
     default/
-      classes/        # Apex classes and controllers
-      triggers/       # Apex triggers
-      flows/          # Salesforce Flows
-      lwc/            # Lightning Web Components
-      objects/        # Custom objects and fields
-      permissionsets/ # Permission sets per role
-      profiles/       # User profiles
+      classes/           # Apex classes and controllers
+      triggers/          # Apex triggers
+      flows/             # Salesforce Flows
+      lwc/               # Lightning Web Components
+      objects/           # Custom objects and fields
+      permissionsets/    # Permission sets per role
+      profiles/          # User profiles
       approvalProcesses/ # Offer approval process
-
+```
 
 ## Roles
 
