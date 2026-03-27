@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DigitalExperienceConfig xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>ESW_TalentForce_Recruitmen_1774296525942</label>
+    <site>
+        <urlPathPrefix>ESWTalentForceRecruitmen1774296525942</urlPathPrefix>
+    </site>
+    <space>site/ESW_TalentForce_Recruitmen_17742965259421</space>
+</DigitalExperienceConfig>

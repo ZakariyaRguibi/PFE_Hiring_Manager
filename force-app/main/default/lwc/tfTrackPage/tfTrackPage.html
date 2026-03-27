@@ -1,0 +1,132 @@
+<template>
+  <div class="wrap">
+    <section class="heroCard">
+      <div class="heroTop">
+        <div>
+          <h1>My Recruitment Progress</h1>
+          <p class="sub">Track your applications and interview schedule in one place.</p>
+        </div>
+        <div class="heroBadge">{applicationCount} Applications</div>
+      </div>
+    </section>
+
+    <template if:true={loading}>
+      <div class="stateCard">Loading...</div>
+    </template>
+
+    <template if:false={loading}>
+      <template if:true={guestUser}>
+        <section class="stateCard">
+          <h2>Track your application</h2>
+          <p class="muted">
+            Log in to view your applications, interview schedule, and recruitment updates.
+          </p>
+
+          <div class="actions">
+            <a class="btn primary" href="/recruitemntportal/s/login">Log In</a>
+            <a class="btn secondary" href="/recruitemntportal/s/jobs">Browse Jobs</a>
+          </div>
+        </section>
+      </template>
+
+      <template if:false={guestUser}>
+        <template if:true={hasApplications}>
+          <section class="section">
+            <div class="sectionHeader">
+              <h2>My Applications</h2>
+              <p class="sectionSub">Each application includes its related interviews.</p>
+            </div>
+
+            <template if:true={errorMessage}>
+              <div class="errorBanner">{errorMessage}</div>
+            </template>
+
+            <div class="appGrid">
+              <template for:each={applicationCards} for:item="app">
+                <article key={app.opportunityId} class="appCard">
+                  <div class="appHeader">
+                    <div>
+                      <div class="eyebrow">Application</div>
+                      <div class="appTitle">{app.opportunityName}</div>
+                      <div class="jobName">{app.jobPositionName}</div>
+                    </div>
+                    <span class="stageBadge">{app.stageName}</span>
+                  </div>
+
+                  <div class="appMeta">
+                    <div class="metaItem">
+                      <span class="label">Close Date</span>
+                      <span class="value">{app.closeDate}</span>
+                    </div>
+
+                    <template if:true={app.finalDecision}>
+                      <div class="metaItem">
+                        <span class="label">Final Decision</span>
+                        <span class="value">{app.finalDecision}</span>
+                      </div>
+                    </template>
+
+                    <div class="metaItem">
+                      <span class="label">Interviews</span>
+                      <span class="value">{app.interviewsCount}</span>
+                    </div>
+                  </div>
+
+                  <template if:true={app.showWithdrawButton}>
+                    <div class="appActions">
+                      <button
+                        class="btn danger"
+                        data-id={app.opportunityId}
+                        data-job={app.jobPositionName}
+                        onclick={handleWithdraw}
+                        disabled={withdrawing}>
+                        Withdraw Application
+                      </button>
+                    </div>
+                  </template>
+
+                  <div class="timelineWrap">
+                    <div class="timelineTitle">Interview Timeline</div>
+
+                    <template if:true={app.hasInterviews}>
+                      <div class="timeline">
+                        <template for:each={app.interviews} for:item="interview">
+                          <div key={interview.interviewId} class="timelineItem">
+                            <div class={interview.dotClass}></div>
+
+                            <div class="timelineContent">
+                              <div class="timelineTop">
+                                <div class="interviewName">{interview.interviewName}</div>
+                                <span class="typeBadge">{interview.interviewType}</span>
+                              </div>
+
+                              <div class="timelineMeta">
+                                <div><span class="label">Date</span> {interview.displayDate}</div>
+                                <div><span class="label">Interviewer</span> {interview.interviewerName}</div>
+                                <div><span class="label">Status</span> {interview.timeStatus}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+
+                    <template if:false={app.hasInterviews}>
+                      <div class="emptyInline">No interviews scheduled yet for this application.</div>
+                    </template>
+                  </div>
+                </article>
+              </template>
+            </div>
+          </section>
+        </template>
+
+        <template if:false={hasApplications}>
+          <div class="stateCard small">
+            You haven’t applied to any jobs yet.
+          </div>
+        </template>
+      </template>
+    </template>
+  </div>
+</template>

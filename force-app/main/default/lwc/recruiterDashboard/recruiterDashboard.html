@@ -1,0 +1,214 @@
+<template>
+    <div class="tf-dashboard">
+
+        <template if:true={isLoading}>
+            <div class="tf-loader">
+                <div class="tf-loader__ring"></div>
+                <span>Loading dashboard...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <header class="tf-header">
+                <div class="tf-header__brand">
+                    <div class="tf-header__logo-img">
+                        <img src="https://res.cloudinary.com/dgy7mvhnm/image/upload/w_200,h_80,c_fit/v1773805978/talentforce_logo_header_4k_wmbyal.png" 
+                            alt="TalentForce" 
+                            height="38" />
+                    </div>
+                    <div>
+                        <div class="tf-header__eyebrow">TalentForce Recruit</div>
+                        <div class="tf-header__title">Recruiter Home Page</div>
+                    </div>
+                </div>
+                <div class="tf-header__actions">
+                    <button class="tf-btn tf-btn--ghost" onclick={handleRefresh}>
+                        &#8635; Refresh
+                    </button>
+                    <button class="tf-btn tf-btn--primary" onclick={handleCreateOpportunity}>
+                        + New Application
+                    </button>
+                </div>
+            </header>
+
+            <div class="tf-kpi-row">
+                <div class="tf-kpi tf-kpi--blue">
+                    <div class="tf-kpi__accent"></div>
+                    <div class="tf-kpi__icon">&#9672;</div>
+                    <div class="tf-kpi__body">
+                        <div class="tf-kpi__value">{stats.activeApplications}</div>
+                        <div class="tf-kpi__label">Active Applications</div>
+                    </div>
+                </div>
+                <div class="tf-kpi tf-kpi--orange">
+                    <div class="tf-kpi__accent"></div>
+                    <div class="tf-kpi__icon">&#10022;</div>
+                    <div class="tf-kpi__body">
+                        <div class="tf-kpi__value">{stats.newApplicationsToday}</div>
+                        <div class="tf-kpi__label">New Today</div>
+                    </div>
+                </div>
+                <div class="tf-kpi tf-kpi--teal">
+                    <div class="tf-kpi__accent"></div>
+                    <div class="tf-kpi__icon">&#9719;</div>
+                    <div class="tf-kpi__body">
+                        <div class="tf-kpi__value">{stats.interviewsToday}</div>
+                        <div class="tf-kpi__label">Interviews Today</div>
+                    </div>
+                </div>
+                <div class="tf-kpi tf-kpi--green">
+                    <div class="tf-kpi__accent"></div>
+                    <div class="tf-kpi__icon">&#10003;</div>
+                    <div class="tf-kpi__body">
+                        <div class="tf-kpi__value">{stats.hiredThisMonth}</div>
+                        <div class="tf-kpi__label">Hired This Month</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tf-grid">
+
+                <div class="tf-col">
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--blue"></span>
+                            <h2 class="tf-card__title">Recruitment Pipeline</h2>
+                        </div>
+                        <div class="tf-pipeline">
+                            <template for:each={pipeline} for:item="item">
+                                <div key={item.stage} class="tf-pipeline__row">
+                                    <div class="tf-pipeline__meta">
+                                        <span class="tf-pipeline__stage">{item.stage}</span>
+                                        <span class="tf-pipeline__count">{item.count}</span>
+                                    </div>
+                                    <div class="tf-pipeline__track">
+                                        <div class="tf-pipeline__fill" style={item.style}></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--orange"></span>
+                            <h2 class="tf-card__title">Alerts</h2>
+                            <span class="tf-badge">{alerts.length}</span>
+                        </div>
+                        <template if:true={alerts.length}>
+                            <template for:each={alerts} for:item="alert">
+                                <div key={alert.id} class="tf-alert">
+                                    <span class="tf-alert__icon">!</span>
+                                    <span class="tf-alert__msg">{alert.message}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={alerts.length}>
+                            <div class="tf-empty">&#10003; No alerts right now</div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="tf-col">
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--blue"></span>
+                            <h2 class="tf-card__title">Recent Applications</h2>
+                            <button class="tf-link" onclick={handleReviewOpportunities}>View all &#8594;</button>
+                        </div>
+                        <template if:true={recentOpportunities.length}>
+                            <template for:each={recentOpportunities} for:item="opp">
+                                <div key={opp.id} class="tf-row">
+                                    <div class="tf-row__avatar">{opp.initials}</div>
+                                    <div class="tf-row__body">
+                                        <div class="tf-row__name">{opp.name}</div>
+                                        <div class="tf-row__sub">{opp.role} - {opp.dateLabel}</div>
+                                    </div>
+                                    <span class="tf-stage-pill">{opp.stage}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={recentOpportunities.length}>
+                            <div class="tf-empty">No recent applications.</div>
+                        </template>
+                    </div>
+
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--green"></span>
+                            <h2 class="tf-card__title">Top Candidates</h2>
+                        </div>
+                        <template if:true={topCandidates.length}>
+                            <template for:each={topCandidates} for:item="c">
+                                <div key={c.id} class="tf-row">
+                                    <div class="tf-row__avatar tf-row__avatar--gold">{c.initials}</div>
+                                    <div class="tf-row__body">
+                                        <div class="tf-row__name">{c.name}</div>
+                                        <div class="tf-row__sub">{c.role} - {c.stage}</div>
+                                    </div>
+                                    <div class="tf-score">
+                                        <div class="tf-score__value">{c.score}</div>
+                                        <div class="tf-score__label">score</div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={topCandidates.length}>
+                            <div class="tf-empty">No scored candidates found.</div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="tf-col">
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--teal"></span>
+                            <h2 class="tf-card__title">Today's Interviews</h2>
+                            <span class="tf-badge tf-badge--teal">{stats.interviewsToday}</span>
+                        </div>
+                        <template if:true={interviews.length}>
+                            <template for:each={interviews} for:item="iv">
+                                <div key={iv.id} class="tf-interview">
+                                    <div class="tf-interview__time">{iv.timeLabel}</div>
+                                    <div class="tf-interview__body">
+                                        <div class="tf-interview__name">{iv.name}</div>
+                                        <div class="tf-interview__meta">{iv.type} - {iv.role}</div>
+                                        <div class="tf-interview__who">{iv.interviewer}</div>
+                                    </div>
+                                    <span class="tf-type-pill">{iv.type}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={interviews.length}>
+                            <div class="tf-empty">No interviews scheduled today.</div>
+                        </template>
+                    </div>
+
+                    <div class="tf-card">
+                        <div class="tf-card__header">
+                            <span class="tf-card__dot tf-card__dot--orange"></span>
+                            <h2 class="tf-card__title">Quick Actions</h2>
+                        </div>
+                        <div class="tf-actions">
+                            <button class="tf-action-btn tf-action-btn--primary" onclick={handleCreateOpportunity}>
+                                <span class="tf-action-btn__icon">+</span>
+                                <span>New Application</span>
+                            </button>
+                            <button class="tf-action-btn" onclick={handleScheduleInterview}>
+                                <span class="tf-action-btn__icon">&#9719;</span>
+                                <span>Schedule Interview</span>
+                            </button>
+                            <button class="tf-action-btn" onclick={handleReviewOpportunities}>
+                                <span class="tf-action-btn__icon">&#9672;</span>
+                                <span>Review Applications</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </template>
+    </div>
+</template>

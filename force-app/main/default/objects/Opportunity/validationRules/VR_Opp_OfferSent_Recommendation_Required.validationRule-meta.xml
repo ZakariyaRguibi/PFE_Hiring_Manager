@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Opp_OfferSent_Recommendation_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+  ISPICKVAL(StageName, &quot;Offer Sent&quot;),
+  ISBLANK(TEXT(Recruiter_Recommendation__c))
+)</errorConditionFormula>
+    <errorDisplayField>Recruiter_Recommendation__c</errorDisplayField>
+    <errorMessage>Recruiter Recommendation is required when Stage is Offer Sent.</errorMessage>
+</ValidationRule>

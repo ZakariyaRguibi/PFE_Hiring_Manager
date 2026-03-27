@@ -1,0 +1,78 @@
+<template>
+  <aside class="wrap">
+
+    <!-- Stats -->
+    <section class="card stats">
+      <div class="statsTop">
+        <div class="statsTitle">Open Positions</div>
+        <div class="statsBadge">Live</div>
+      </div>
+
+      <div class="statsNumber">
+        <template if:true={countReady}>{openCount}</template>
+        <template if:false={countReady}>—</template>
+      </div>
+
+      <div class="statsSub">Jobs currently available for application.</div>
+
+      <div class="actions">
+        <a class="btn primary" href="/recruitemntportal/s/jobs">Browse Jobs</a>
+        <a class="btn ghost" href="/recruitemntportal/s/track">Track</a>
+      </div>
+    </section>
+
+    <!-- Why us -->
+    <section class="card">
+      <div class="cardTitle">Why TalentForce?</div>
+
+      <div class="list">
+        <div class="item">
+          <div class="icon blue">✓</div>
+          <div>
+            <div class="itemTitle">Transparent process</div>
+            <div class="itemSub">Clear steps from apply to decision.</div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="icon orange">⚡</div>
+          <div>
+            <div class="itemTitle">Fast applications</div>
+            <div class="itemSub">Submit in minutes using our portal.</div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="icon blue">🔒</div>
+          <div>
+            <div class="itemTitle">Secure data</div>
+            <div class="itemSub">Your information is protected.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help -->
+    <section class="card">
+      <div class="cardTitle">Need help?</div>
+      <div class="muted">Contact our recruitment team.</div>
+
+      <div class="contact">
+        <div class="contactRow">
+          <span class="chip">Email</span>
+          <span class="contactValue">recruitment@talentforce.com</span>
+        </div>
+        <div class="contactRow">
+          <span class="chip">Phone</span>
+          <span class="contactValue">+212 6xx-xxx-xxx</span>
+        </div>
+      </div>
+
+      <div class="links">
+        <a class="link" href="/recruitemntportal/s/faq">FAQ →</a>
+        <a class="link" href="/recruitemntportal/s/about">Contact →</a>
+      </div>
+    </section>
+
+  </aside>
+</template>

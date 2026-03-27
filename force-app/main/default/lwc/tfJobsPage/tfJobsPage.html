@@ -1,0 +1,116 @@
+<template>
+  <div class="wrap">
+
+    <section class="header">
+      <div>
+        <h2>Browse Jobs</h2>
+        <p class="muted">Only positions with status <b>Open</b> are visible.</p>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="filtersCard">
+      <div class="grid">
+        <div class="field">
+          <label>Keyword</label>
+          <input class="input" placeholder="e.g., Data Analyst, Java, Marketing…" value={keyword} oninput={onKeyword}/>
+        </div>
+
+        <div class="field">
+          <label>Location</label>
+          <input class="input" placeholder="e.g., Casablanca, Rabat, Remote…" value={location} oninput={onLocation}/>
+        </div>
+
+        <div class="field">
+          <label>Department</label>
+          <select class="select" value={department} onchange={onDepartment}>
+            <option value="">All departments</option>
+            <template for:each={departmentOptions} for:item="d">
+              <option key={d.value} value={d.value}>{d.label}</option>
+            </template>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Employment Type</label>
+          <select class="select" value={employmentType} onchange={onEmploymentType}>
+            <option value="">All types</option>
+            <template for:each={employmentTypeOptions} for:item="t">
+              <option key={t.value} value={t.value}>{t.label}</option>
+            </template>
+          </select>
+        </div>
+
+        <div class="field actions">
+          <button class="btn primary" onclick={search}>Search</button>
+          <button class="btn ghost" onclick={clear}>Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results">
+      <div class="resultsTop">
+        <div class="count">
+          <template if:true={loading}>Loading…</template>
+          <template if:false={loading}>{resultsCount} results</template>
+        </div>
+      </div>
+
+      <template if:true={error}>
+        <div class="error">{error}</div>
+      </template>
+
+      <div class="gridCards">
+        <template for:each={jobs} for:item="job">
+          <article key={job.Id} class="jobCard" data-id={job.Id} onclick={openDetails}>
+            <div class="jobCardTop">
+              <div class="jobTitle">{job.Name}</div>
+              <span class="pill">Open</span>
+            </div>
+
+            <div class="meta">
+              <span>{job.Location__c}</span>
+              <span class="dot">•</span>
+              <span>{job.Department__c}</span>
+              <span class="dot">•</span>
+              <span>{job.Employment_Type__c}</span>
+            </div>
+
+            <div class="mini">
+              <span class="miniPill">Min exp: {job.Min_Years_Experience__c}</span>
+              <span class="miniPill">Edu: {job.Education_Required__c}</span>
+            </div>
+
+            <div class="footer">
+              <span class="view">View details →</span>
+            </div>
+          </article>
+        </template>
+      </div>
+
+      <template if:true={noResults}>
+        <div class="empty">
+          No jobs found. Try changing filters.
+        </div>
+      </template>
+    </section>
+
+    <!-- Modals -->
+    <c-tf-job-details-modal
+      if:true={showDetails}
+      job-id={selectedJobId}
+      onclose={closeDetails}
+      onapply={openApply}>
+    </c-tf-job-details-modal>
+
+    <c-tf-apply-modal
+      if:true={showApply}
+      job-id={selectedJobId}
+      flow-api-name="Candidate_Application_Flow"
+      flow-jobvar-name="varJobPositionId"
+      onclose={closeApply}>
+    </c-tf-apply-modal>
+
+  </div>
+</template>

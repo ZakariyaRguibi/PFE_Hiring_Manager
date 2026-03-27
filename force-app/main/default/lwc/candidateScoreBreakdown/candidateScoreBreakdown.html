@@ -1,0 +1,41 @@
+<template>
+    <lightning-card title="Candidate Score Breakdown" icon-name="utility:chart">
+        <div class="wrapper">
+            <div class="heroCard">
+                <div class="heroLabel">Overall Score</div>
+                <div class="heroScore">{overallScore}</div>
+                <div class={overallBadgeClass}>{overallLabel}</div>
+            </div>
+
+            <div class="scoreCard">
+                <div class="scoreHeader">
+                    <span class="scoreLabel">Initial Score</span>
+                    <span class="scorePill">{initialScore}/100</span>
+                </div>
+                <div class="barTrack">
+                    <div class={initialBarClass}></div>
+                </div>
+            </div>
+
+            <div class="scoreCard">
+                <div class="scoreHeader">
+                    <span class="scoreLabel">Experience Score</span>
+                    <span class="scorePill">{experienceScore}/100</span>
+                </div>
+                <div class="barTrack">
+                    <div class={experienceBarClass}></div>
+                </div>
+            </div>
+
+            <div class="scoreCard">
+                <div class="scoreHeader">
+                    <span class="scoreLabel">Education Score</span>
+                    <span class="scorePill">{educationScore}/100</span>
+                </div>
+                <div class="barTrack">
+                    <div class={educationBarClass}></div>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Opp_Job_Position_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>ISBLANK(Job_Position__c)</errorConditionFormula>
+    <errorDisplayField>Job_Position__c</errorDisplayField>
+    <errorMessage>Job Position is required.</errorMessage>
+</ValidationRule>

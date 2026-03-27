@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Opp_FinalStage_Decision_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+  OR(
+    ISPICKVAL(StageName, &quot;Hired&quot;),
+    ISPICKVAL(StageName, &quot;Rejected&quot;),
+    ISPICKVAL(StageName, &quot;Withdrawn&quot;)
+  ),
+  OR(
+    ISBLANK(TEXT(Final_Decision__c)),
+    ISBLANK(Decision_Date__c)
+  )
+)</errorConditionFormula>
+    <errorDisplayField>Final_Decision__c</errorDisplayField>
+    <errorMessage>Final Decision and Decision Date are required for Hired/Rejected/Withdrawn.</errorMessage>
+</ValidationRule>

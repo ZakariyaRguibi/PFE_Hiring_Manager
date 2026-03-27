@@ -1,0 +1,59 @@
+<template>
+  <section class="backdrop" onclick={closeIfBackdrop}>
+    <div class="modal" role="dialog" aria-modal="true" onclick={stopPropagation}>
+      <div class="header">
+        <button class="iconBtn" onclick={close} aria-label="Close">✕</button>
+      </div>
+
+      <div class="body">
+        <template if:true={jobReady}>
+          <div class="jobCard">
+            <div class="jobTop">
+              <div>
+                <div class="jobLabel">Selected Position</div>
+                <div class="jobTitle">{job.Name}</div>
+              </div>
+              <span class="statusPill">Open</span>
+            </div>
+
+            <div class="jobMeta">
+              <template if:true={job.Location__c}>
+                <span>{job.Location__c}</span>
+              </template>
+              <template if:true={showLocationDot}>
+                <span class="dot">•</span>
+              </template>
+              <template if:true={job.Department__c}>
+                <span>{job.Department__c}</span>
+              </template>
+              <template if:true={showDepartmentDot}>
+                <span class="dot">•</span>
+              </template>
+              <template if:true={job.Employment_Type__c}>
+                <span>{job.Employment_Type__c}</span>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div class="flowWrap">
+          <template if:true={flowReady}>
+            <lightning-flow
+              flow-api-name={flowApiName}
+              flow-input-variables={flowInputs}
+              onstatuschange={handleStatusChange}>
+            </lightning-flow>
+          </template>
+
+          <template if:false={flowReady}>
+            <div>Loading application form...</div>
+          </template>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button class="btn secondary" onclick={close}>Close</button>
+      </div>
+    </div>
+  </section>
+</template>

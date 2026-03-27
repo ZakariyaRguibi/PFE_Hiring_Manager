@@ -1,0 +1,327 @@
+<apex:page controller="ContractPDFController"
+    renderAs="pdf"
+    applyBodyTag="false"
+    applyHtmlTag="false"
+    showHeader="false"
+    sidebar="false"
+    contentType="application/pdf">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<style type="text/css">
+
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        color: #2c2c2c;
+        margin: 0;
+        padding: 0;
+    }
+
+    .top-bar {
+        background-color: #2E86C1;
+        height: 8px;
+        width: 100%;
+        display: block;
+    }
+
+    .orange-bar {
+        background-color: #E87722;
+        height: 4px;
+        width: 100%;
+        display: block;
+    }
+
+    .header-table {
+        width: 100%;
+        padding: 20px 40px 16px 40px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .logo-cell {
+        width: 200px;
+        vertical-align: middle;
+    }
+
+    .title-cell {
+        text-align: right;
+        vertical-align: middle;
+    }
+
+    .doc-main-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2E86C1;
+        letter-spacing: 2px;
+    }
+
+    .doc-sub-title {
+        font-size: 10px;
+        color: #E87722;
+        letter-spacing: 3px;
+        font-weight: bold;
+    }
+
+    .doc-date {
+        font-size: 10px;
+        color: #999999;
+        margin-top: 4px;
+    }
+
+    .body {
+        padding: 24px 40px;
+    }
+
+    .section {
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        font-size: 10px;
+        font-weight: bold;
+        color: #ffffff;
+        background-color: #2E86C1;
+        padding: 6px 10px 6px 14px;
+        letter-spacing: 2px;
+        border-left: 5px solid #E87722;
+        display: block;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table td {
+        padding: 8px 12px;
+        font-size: 12px;
+        vertical-align: top;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .td-label {
+        font-weight: bold;
+        color: #2E86C1;
+        width: 190px;
+        background-color: #ffffff;
+    }
+
+    .td-value {
+        color: #2c2c2c;
+        background-color: #ffffff;
+    }
+
+    .td-label-alt {
+        font-weight: bold;
+        color: #2E86C1;
+        width: 190px;
+        background-color: #f4f8fd;
+    }
+
+    .td-value-alt {
+        color: #2c2c2c;
+        background-color: #f4f8fd;
+    }
+
+    .terms-box {
+        background-color: #f9f9f9;
+        border-left: 4px solid #E87722;
+        padding: 14px 16px;
+        font-size: 11px;
+        color: #444444;
+        line-height: 1.8;
+    }
+
+    .sig-table {
+        width: 100%;
+        margin-top: 40px;
+        border-collapse: collapse;
+    }
+
+    .sig-table td {
+        width: 50%;
+        vertical-align: top;
+        padding: 0 10px;
+    }
+
+    .sig-top-line {
+        border-top: 2px solid #2E86C1;
+        margin-bottom: 8px;
+    }
+
+    .sig-label {
+        font-size: 11px;
+        font-weight: bold;
+        color: #2E86C1;
+        margin-bottom: 6px;
+    }
+
+    .sig-name {
+        font-size: 11px;
+        color: #444444;
+        margin-bottom: 30px;
+    }
+
+    .sig-date-line {
+        border-top: 1px solid #bbbbbb;
+        padding-top: 4px;
+        font-size: 10px;
+        color: #999999;
+        margin-top: 30px;
+    }
+
+    .footer-table {
+        width: 100%;
+        background-color: #f4f4f4;
+        border-top: 1px solid #dddddd;
+        margin-top: 40px;
+        padding: 12px 40px;
+    }
+
+    .footer-left {
+        font-size: 10px;
+        color: #999999;
+        vertical-align: middle;
+    }
+
+    .footer-right {
+        font-size: 10px;
+        color: #E87722;
+        font-weight: bold;
+        text-align: right;
+        vertical-align: middle;
+    }
+
+</style>
+</head>
+<body>
+
+    <!-- TOP BARS -->
+    <div class="top-bar">&#160;</div>
+    <div class="orange-bar">&#160;</div>
+
+    <!-- HEADER -->
+    <table class="header-table" cellpadding="0" cellspacing="0">
+        <tr>
+            <td class="logo-cell">
+                <apex:image url="{!$Resource.TalentForceLogo}" width="170" height="60"/>
+            </td>
+            <td class="title-cell">
+                <div class="doc-main-title">EMPLOYMENT CONTRACT</div>
+                <div class="doc-sub-title">TALENTFORCE RECRUIT</div>
+                <div class="doc-date">
+                    Generated on: <apex:outputText value="{0,date,MMMM dd, yyyy}"><apex:param value="{!TODAY()}"/></apex:outputText>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- BODY -->
+    <div class="body">
+
+        <!-- CONTRACT INFORMATION -->
+        <div class="section">
+            <div class="section-title">CONTRACT INFORMATION</div>
+            <table class="data-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="td-label">Contract Number</td>
+                    <td class="td-value">{!contract.ContractNumber}</td>
+                </tr>
+                <tr>
+                    <td class="td-label-alt">Start Date</td>
+                    <td class="td-value-alt">
+                        <apex:outputText value="{0,date,MMMM dd, yyyy}"><apex:param value="{!contract.StartDate}"/></apex:outputText>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td-label">Signing Deadline</td>
+                    <td class="td-value">
+                        <apex:outputText value="{0,date,MMMM dd, yyyy}"><apex:param value="{!contract.Deadline__c}"/></apex:outputText>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td-label-alt">Status</td>
+                    <td class="td-value-alt">{!contract.Status}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- CANDIDATE INFORMATION -->
+        <div class="section">
+            <div class="section-title">CANDIDATE INFORMATION</div>
+            <table class="data-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="td-label">Full Name</td>
+                    <td class="td-value">{!account.Name}</td>
+                </tr>
+                <tr>
+                    <td class="td-label-alt">Email Address</td>
+                    <td class="td-value-alt">{!account.PersonEmail}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- POSITION DETAILS -->
+        <div class="section">
+            <div class="section-title">POSITION DETAILS</div>
+            <table class="data-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="td-label">Position Title</td>
+                    <td class="td-value">{!opportunity.Name}</td>
+                </tr>
+                <tr>
+                    <td class="td-label-alt">Job Reference</td>
+                    <td class="td-value-alt">{!opportunity.Job_Position__r.Name}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TERMS -->
+        <div class="section">
+            <div class="section-title">TERMS AND CONDITIONS</div>
+            <div class="terms-box">
+                By signing this document, the candidate acknowledges and agrees to accept the position
+                as described above, under the terms and conditions established by TalentForce Recruit.
+                The signed contract must be returned before the deadline indicated above.
+                Failure to return the signed contract by the deadline will result in automatic
+                cancellation of this offer and reassignment of the position to the next qualified candidate.
+            </div>
+        </div>
+
+        <!-- SIGNATURES -->
+        <table class="sig-table" cellpadding="0" cellspacing="0">
+            <tr>
+                <td>
+                    <div class="sig-top-line">&#160;</div>
+                    <div class="sig-label">Candidate Signature</div>
+                    <div class="sig-name">Full Name: {!account.Name}</div>
+                    <div class="sig-date-line">Signature / Date</div>
+                </td>
+                <td>
+                    <div class="sig-top-line">&#160;</div>
+                    <div class="sig-label">Company Representative</div>
+                    <div class="sig-name">TalentForce Recruit</div>
+                    <div class="sig-date-line">Signature / Date</div>
+                </td>
+            </tr>
+        </table>
+
+    </div>
+
+    <!-- FOOTER -->
+    <table class="footer-table" cellpadding="0" cellspacing="0">
+        <tr>
+            <td class="footer-left">
+                This document is strictly confidential and intended solely for the named recipient.
+            </td>
+            <td class="footer-right">
+                TalentForce Recruit
+            </td>
+        </tr>
+    </table>
+
+    <div class="orange-bar">&#160;</div>
+
+</body>
+</html>
+</apex:page>
