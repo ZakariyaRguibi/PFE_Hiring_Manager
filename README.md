@@ -1,18 +1,55 @@
-# Salesforce DX Project: Next Steps
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+# TalentForce Recruit — Salesforce Recruitment Platform
 
-## How Do You Plan to Deploy Your Changes?
+A Salesforce-native AI-powered recruitment management platform built to handle the full hiring lifecycle, from job position creation to contract signing.
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+## Overview
 
-## Configure Your Salesforce DX Project
+TalentForce Recruit is built entirely within a Salesforce org using native platform capabilities. It manages the complete candidate lifecycle: job position creation, candidate application and qualification, interview stages, offer approval, contract generation, and final hiring.
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+## Built With
 
-## Read All About It
+- **Apex** — Backend logic, services, triggers, and scheduled jobs
+- **Lightning Web Components (LWC)** — Custom UI components
+- **Salesforce Flows** — Stage transitions, automations, and field updates
+- **Agentforce** — AI agent available to candidates, recruiters, interviewers, and hiring managers
+- **Experience Cloud** — Candidate-facing portal for job discovery and application
+- **Approval Process** — Native offer approval workflow for hiring managers
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+## Key Features
+
+- Job position creation with requirements (skills, education, experience)
+- Candidate intake form via Experience Cloud with automatic Lead creation
+- Automatic qualification scoring based on candidate profile
+- Sequential interview stages (HR, Technical, Manager) with conditional progression
+- Final applicant score calculation (initial score + interview scores)
+- Offer approval process for hiring managers
+- Automated contract generation and sending with 48-hour signing deadline
+- Contract expiry and automatic candidate reranking
+- AI agent serving candidates, recruiters, interviewers, and hiring managers
+
+## Project Structure
+
+
+force-app/
+  main/
+    default/
+      classes/        # Apex classes and controllers
+      triggers/       # Apex triggers
+      flows/          # Salesforce Flows
+      lwc/            # Lightning Web Components
+      objects/        # Custom objects and fields
+      permissionsets/ # Permission sets per role
+      profiles/       # User profiles
+      approvalProcesses/ # Offer approval process
+
+
+## Roles
+
+| Role | Description |
+|------|-------------|
+| Recruiter | Manages job positions, candidates, and contracts |
+| Hiring Manager | Reviews and approves/rejects offers |
+| Interviewer | Conducts interviews and records scores |
+| Candidate | Applies via portal and tracks application status |
+
