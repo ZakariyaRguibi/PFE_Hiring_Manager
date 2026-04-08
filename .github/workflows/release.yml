@@ -102,7 +102,7 @@ jobs:
             --version-number "${{ steps.extract-version.outputs.version }}" \
             --wait 30 \
             --code-coverage \
-            --install-key-bypass \
+            --installation-key-bypass \
             --verbose
 
           # Retrieve the subscriber package version ID of the version just created
