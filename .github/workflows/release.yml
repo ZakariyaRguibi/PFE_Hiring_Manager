@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
-      version: ${{ steps.extract-version.outputs.version }}
+      version: ${{ steps.create-package-version.outputs.version }}
       package-version-id: ${{ steps.create-package-version.outputs.package-version-id }}
     steps:
       - name: Checkout source code
@@ -78,9 +78,9 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           else
-            # Strip the .NEXT suffix — e.g. "1.0.0.NEXT" → "1.0.0.0"
-            VERSION=$(jq -r '.packageDirectories[0].versionNumber' sfdx-project.json | sed 's/\.NEXT$/\.0/')
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            # Read major.minor.patch from sfdx-project.json (strips .NEXT)
+            BASE=$(jq -r '.packageDirectories[0].versionNumber' sfdx-project.json | sed 's/\.NEXT$//')
+            echo "version-base=$BASE" >> $GITHUB_OUTPUT
           fi
 
       - name: Authenticate to Dev Hub
@@ -97,26 +97,32 @@ jobs:
       - name: Create package version (with full Apex test run)
         id: create-package-version
         run: |
+          BASE="${{ steps.extract-version.outputs.version-base }}"
+
           sf package version create \
             --package "PFE_Hiring_Manager" \
-            --version-number "${{ steps.extract-version.outputs.version }}" \
+            --version-number "${BASE}.NEXT" \
             --wait 30 \
             --code-coverage \
             --installation-key-bypass \
             --verbose
 
-          # Retrieve the subscriber package version ID of the version just created
-          PACKAGE_VERSION_ID=$(sf package version list \
+          # Retrieve the actual version number and subscriber package version ID
+          RESULT=$(sf package version list \
             --packages "PFE_Hiring_Manager" \
             --concise \
             --order-by CreatedDate \
-            --json | jq -r '.result[-1].SubscriberPackageVersionId')
+            --json | jq -r '.result[-1]')
+
+          PACKAGE_VERSION_ID=$(echo "$RESULT" | jq -r '.SubscriberPackageVersionId')
+          VERSION=$(echo "$RESULT" | jq -r '.Version')
 
           echo "package-version-id=$PACKAGE_VERSION_ID" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
           # Persist for the release job (passed via artifact)
           echo "Package Version ID: $PACKAGE_VERSION_ID" > package_details.txt
-          echo "Version: ${{ steps.extract-version.outputs.version }}" >> package_details.txt
+          echo "Version: $VERSION" >> package_details.txt
           echo "Install command: sf package install --package $PACKAGE_VERSION_ID --wait 10" >> package_details.txt
 
       - name: Upload package details artifact
