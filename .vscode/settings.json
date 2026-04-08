@@ -41,5 +41,6 @@
   ],
   "eslint.options": {
     "overrideConfigFile": "c:\\Users\\Admin\\Desktop\\PFE_Hiring_Manager\\.eslintrc.json"
-  }
+  },
+  "xml.preferences.showSchemaDocumentationType": "none"
 }
