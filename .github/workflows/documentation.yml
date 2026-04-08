@@ -95,19 +95,24 @@ jobs:
 
       - name: Generate ApexDocs
         run: |
-          # ── Changelog (diff HEAD~1 → HEAD) ────────────────────────────────
-          if [ "$(git rev-list --count HEAD)" -gt 1 ]; then
-            git checkout HEAD~1 -- force-app/
+          # ── Changelog (diff last git tag → HEAD) ─────────────────────────
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -n "$LATEST_TAG" ] && git ls-tree -d "$LATEST_TAG" force-app &>/dev/null; then
+            git checkout "$LATEST_TAG" -- force-app/
             cp -r force-app/ ./temp-previous-version/
-            git checkout HEAD  -- force-app/
+            git checkout HEAD -- force-app/
             apexdocs changelog \
               --previousVersionDir ./temp-previous-version \
               --currentVersionDir  force-app/ \
               --targetDir          ./apexdocs-output/changelog \
               --fileName           "changelog" \
               --scope              global public private protected
-          else
-            printf "# Changelog\n\nInitial version — no previous changes to compare." \
+          fi
+
+          # Fallback: ensure the file always exists so the VitePress route is never a 404
+          if [ ! -f "./apexdocs-output/changelog/changelog.md" ]; then
+            printf "# Changelog\n\nNo previous release tag found — this is the initial version." \
               > ./apexdocs-output/changelog/changelog.md
           fi
 

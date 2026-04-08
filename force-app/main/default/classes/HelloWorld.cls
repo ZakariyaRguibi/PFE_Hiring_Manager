@@ -10,4 +10,13 @@ public with sharing class HelloWorld {
   public static String greet() {
     return 'Hello, World!';
   }
+
+  /**
+   * @description Returns a personalised greeting for the given name.
+   * @param name The name of the person to greet.
+   * @return A greeting string in the form `Hello, <name>!`.
+   */
+  public static String greetByName(String name) {
+    return 'Hello, ' + name + '!';
+  }
 }
