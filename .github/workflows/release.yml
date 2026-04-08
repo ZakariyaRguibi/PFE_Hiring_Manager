@@ -1,0 +1,246 @@
+# Triggered on push to main (i.e. after the manager promotes dev → main).
+# Creates an unlocked package version with full Apex test validation,
+# then creates a GitHub Release with auto-generated release notes.
+# Sends a Slack notification on success or failure.
+#
+# Prerequisites (one-time manual setup):
+#   1. sf package create --name "PFE_Hiring_Manager" --package-type Unlocked --path force-app -v devhub
+#   2. Add the returned packageAliases + versionNumber to sfdx-project.json
+#   3. Set GitHub secrets: DEVHUB_SFDX_URL, SLACK_WEBHOOK_URL
+#
+# Required secrets: DEVHUB_SFDX_URL, SLACK_WEBHOOK_URL
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g. 1.0.0.0) — leave empty to read from sfdx-project.json"
+        required: false
+        type: string
+      prerelease:
+        description: "Mark as pre-release"
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: "Create as draft release"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  # ─── Job 1: Build the unlocked package version ────────────────────────────
+  build-package:
+    name: Build package version
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      package-version-id: ${{ steps.create-package-version.outputs.package-version-id }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install npm dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: HUSKY=0 npm ci
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install @salesforce/cli --location=global
+          sf --version
+
+      - name: Extract version number
+        id: extract-version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # Strip the .NEXT suffix — e.g. "1.0.0.NEXT" → "1.0.0.0"
+            VERSION=$(jq -r '.packageDirectories[0].versionNumber' sfdx-project.json | sed 's/\.NEXT$/\.0/')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate to Dev Hub
+        run: |
+          echo "${{ secrets.DEVHUB_SFDX_URL }}" > ./DEVHUB_SFDX_URL.txt
+          secretFileSize=$(wc -c < "./DEVHUB_SFDX_URL.txt")
+          if [ "$secretFileSize" -le 1 ]; then
+            echo "::error::Missing DEVHUB_SFDX_URL secret. Please configure it in repository settings."
+            exit 1
+          fi
+          sf org login sfdx-url -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+          rm -f ./DEVHUB_SFDX_URL.txt
+
+      - name: Create package version (with full Apex test run)
+        id: create-package-version
+        run: |
+          sf package version create \
+            --package "PFE_Hiring_Manager" \
+            --version-number "${{ steps.extract-version.outputs.version }}" \
+            --wait 30 \
+            --code-coverage \
+            --install-key-bypass \
+            --verbose
+
+          # Retrieve the subscriber package version ID of the version just created
+          PACKAGE_VERSION_ID=$(sf package version list \
+            --packages "PFE_Hiring_Manager" \
+            --concise \
+            --order-by CreatedDate \
+            --json | jq -r '.result[-1].SubscriberPackageVersionId')
+
+          echo "package-version-id=$PACKAGE_VERSION_ID" >> $GITHUB_OUTPUT
+
+          # Persist for the release job (passed via artifact)
+          echo "Package Version ID: $PACKAGE_VERSION_ID" > package_details.txt
+          echo "Version: ${{ steps.extract-version.outputs.version }}" >> package_details.txt
+          echo "Install command: sf package install --package $PACKAGE_VERSION_ID --wait 10" >> package_details.txt
+
+      - name: Upload package details artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-details
+          path: package_details.txt
+          retention-days: 30
+
+  # ─── Job 2: Create GitHub Release ─────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-package
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download package details
+        uses: actions/download-artifact@v4
+        with:
+          name: package-details
+          path: ./artifacts
+
+      - name: Generate release notes from commit history
+        id: generate-notes
+        run: |
+          VERSION="${{ needs.build-package.outputs.version }}"
+          PACKAGE_VERSION_ID="${{ needs.build-package.outputs.package-version-id }}"
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+          {
+            echo "## Package"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Subscriber Package Version ID** | \`${PACKAGE_VERSION_ID}\` |"
+            echo "| **Install command** | \`sf package install --package ${PACKAGE_VERSION_ID} --wait 10\` |"
+            echo ""
+            echo "## Changes since \`${LATEST_TAG}\`"
+            echo ""
+
+            FEATS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" -E --grep="^feat" 2>/dev/null || true)
+            FIXES=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" -E --grep="^fix" 2>/dev/null || true)
+            OTHER=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" -E --grep="^(refactor|chore|docs|style|test|ci|build|perf)" 2>/dev/null || true)
+
+            if [ -n "$FEATS" ]; then
+              echo "### Features"
+              echo "$FEATS"
+              echo ""
+            fi
+
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+
+            if [ -n "$OTHER" ]; then
+              echo "### Other Changes"
+              echo "$OTHER"
+              echo ""
+            fi
+          } > release_notes.md
+
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build-package.outputs.version }}
+          name: Release v${{ needs.build-package.outputs.version }}
+          body_path: release_notes.md
+          draft: ${{ github.event.inputs.draft == 'true' }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: ./artifacts/package_details.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─── Slack notifications ─────────────────────────────────────────────
+      - name: Notify Slack — release success
+        if: success()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "📦 *New Release: PFE Hiring Manager v${{ needs.build-package.outputs.version }}*",
+              "attachments": [
+                {
+                  "color": "good",
+                  "fields": [
+                    { "title": "Version", "value": "v${{ needs.build-package.outputs.version }}", "short": true },
+                    { "title": "Released by", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Package Version ID", "value": "${{ needs.build-package.outputs.package-version-id }}", "short": false },
+                    { "title": "Install", "value": "sf package install --package ${{ needs.build-package.outputs.package-version-id }} --wait 10", "short": false },
+                    { "title": "Release page", "value": "${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ needs.build-package.outputs.version }}", "short": false }
+                  ]
+                }
+              ]
+            }
+
+      - name: Notify Slack — release failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 *Release workflow FAILED for v${{ needs.build-package.outputs.version }}*",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    { "title": "Version", "value": "v${{ needs.build-package.outputs.version }}", "short": true },
+                    { "title": "Actor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "View Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                  ]
+                }
+              ]
+            }

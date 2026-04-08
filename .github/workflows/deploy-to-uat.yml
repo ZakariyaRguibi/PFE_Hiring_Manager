@@ -1,0 +1,128 @@
+# Triggered on every push to dev (i.e. after a PR is merged).
+# Performs a full deploy to the UAT org and runs all Apex tests.
+# Sends a Slack notification on success or failure.
+#
+# Required secret: UAT_SFDX_URL, SLACK_WEBHOOK_URL
+name: Deploy to UAT
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+jobs:
+  deploy-to-uat:
+    name: Deploy to UAT org
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install npm dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: HUSKY=0 npm ci
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install @salesforce/cli --location=global
+          sf --version
+
+      - name: Authenticate to UAT org
+        run: |
+          echo "${{ secrets.UAT_SFDX_URL }}" > ./UAT_SFDX_URL.txt
+          secretFileSize=$(wc -c < "./UAT_SFDX_URL.txt")
+          if [ "$secretFileSize" -le 1 ]; then
+            echo "::error::Missing UAT_SFDX_URL secret. Please configure it in repository settings."
+            exit 1
+          fi
+          sf org login sfdx-url -f ./UAT_SFDX_URL.txt -a uat-org
+          rm -f ./UAT_SFDX_URL.txt
+
+      - name: Deploy to UAT org
+        run: |
+          sf project deploy start \
+            --source-dir force-app \
+            --target-org uat-org \
+            --wait 20 \
+            --verbose
+
+      - name: Run Apex tests
+        run: |
+          mkdir -p ./tests/apex
+          sf apex test run \
+            --target-org uat-org \
+            --code-coverage \
+            --result-format human \
+            --output-dir ./tests/apex \
+            --wait 20
+
+      - name: Upload Apex test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-test-results-${{ github.sha }}
+          path: ./tests/apex/
+          retention-days: 14
+          if-no-files-found: warn
+
+      # ─── Slack notifications ──────────────────────────────────────────────
+      - name: Notify Slack — success
+        if: success()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "✅ *UAT Deployment Succeeded*",
+              "attachments": [
+                {
+                  "color": "good",
+                  "fields": [
+                    { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Actor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Commit", "value": "${{ github.sha }}", "short": false },
+                    { "title": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                  ]
+                }
+              ]
+            }
+
+      - name: Notify Slack — failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 *UAT Deployment FAILED*",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                    { "title": "Actor", "value": "${{ github.actor }}", "short": true },
+                    { "title": "Commit", "value": "${{ github.sha }}", "short": false },
+                    { "title": "View Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                  ]
+                }
+              ]
+            }

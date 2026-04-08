@@ -1,0 +1,149 @@
+# Runs on every PR targeting dev or main.
+# Gate 1 (code-quality): formatting, static analysis, LWC unit tests, PR title lint.
+# Gate 2 (org-validation): check-only deploy + RunLocalTests against the UAT org.
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ─── Gate 1: Static analysis & tests ──────────────────────────────────────
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install npm dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: HUSKY=0 npm ci
+
+      - name: Validate PR title (conventional commits)
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            chore
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            revert
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: The subject must start with a lowercase letter.
+          wip: true
+
+      - name: Check code formatting (Prettier)
+        run: npm run prettier:verify
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install @salesforce/cli --location=global
+          sf --version
+
+      - name: Install Code Analyzer plugin
+        run: sf plugins install code-analyzer
+
+      - name: Run Code Analyzer (ESLint + PMD — fail on severity ≤ 2)
+        run: |
+          mkdir -p ./code-analyzer-results
+          sf code-analyzer run \
+            --workspace "force-app/**" \
+            --output-file ./code-analyzer-results/report.html \
+            --severity-threshold 2 \
+            --view detail
+
+      - name: Upload Code Analyzer report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-analyzer-pr-${{ github.event.pull_request.number }}
+          path: ./code-analyzer-results/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Run LWC unit tests
+        run: npm run test:unit:coverage
+        continue-on-error: true
+
+  # ─── Gate 2: Check-only deploy to UAT org ─────────────────────────────────
+  org-validation:
+    name: Org Validation (check-only deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: code-quality
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install npm dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: HUSKY=0 npm ci
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install @salesforce/cli --location=global
+          sf --version
+
+      - name: Authenticate to UAT org
+        run: |
+          echo "${{ secrets.UAT_SFDX_URL }}" > ./UAT_SFDX_URL.txt
+          secretFileSize=$(wc -c < "./UAT_SFDX_URL.txt")
+          if [ "$secretFileSize" -le 1 ]; then
+            echo "::error::Missing UAT_SFDX_URL secret. Please configure it in repository settings."
+            exit 1
+          fi
+          sf org login sfdx-url -f ./UAT_SFDX_URL.txt -a uat-org
+          rm -f ./UAT_SFDX_URL.txt
+
+      - name: Validate deployment against UAT org (check-only, RunLocalTests)
+        run: |
+          sf project deploy validate \
+            --source-dir force-app \
+            --target-org uat-org \
+            --test-level RunLocalTests \
+            --wait 20 \
+            --verbose

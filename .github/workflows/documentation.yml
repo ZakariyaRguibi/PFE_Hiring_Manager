@@ -1,0 +1,193 @@
+# Triggered on push to dev or main (and manually).
+# Always: generates ApexDocs + runs Code Analyzer → builds a VitePress site.
+# On main:  deploys to GitHub Pages  → https://zakariyarguibi.github.io/PFE_Hiring_Manager/
+# On dev:   uploads the built site as a downloadable artifact (preview, 7-day retention).
+#
+# GitHub Pages setup (one-time):
+#   Repository Settings → Pages → Source: "GitHub Actions"
+name: Documentation
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "force-app/main/default/classes/**"
+      - "force-app/main/default/triggers/**"
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy-docs:
+    name: Build ${{ github.ref == 'refs/heads/main' && '+ Deploy to GitHub Pages' || '(preview artifact)' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for apexdocs changelog diff
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install npm dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: HUSKY=0 npm ci
+
+      - name: Install ApexDocs
+        run: npm install -g @cparra/apexdocs
+
+      - name: Install VitePress
+        run: npm install --no-save vitepress
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install @salesforce/cli --location=global
+          sf --version
+
+      - name: Install Code Analyzer plugin
+        run: sf plugins install code-analyzer
+
+      # Run Code Analyzer — always generate the report whether or not violations exist.
+      # Failures here should not block documentation publishing.
+      - name: Run Code Analyzer
+        continue-on-error: true
+        run: |
+          mkdir -p ./code-analyzer-results
+          sf code-analyzer run \
+            --workspace "force-app/**" \
+            --output-file ./code-analyzer-results/report.html \
+            --view detail
+
+      - name: Prepare docs output directories
+        run: |
+          mkdir -p ./apexdocs-output/.vitepress
+          mkdir -p ./apexdocs-output/markdown
+          mkdir -p ./apexdocs-output/openapi
+          mkdir -p ./apexdocs-output/changelog
+          mkdir -p ./apexdocs-output/public
+          mkdir -p ./temp-previous-version
+
+          # Copy VitePress config and index page from templates
+          cp ./.github/templates/vitepress-config.js ./apexdocs-output/.vitepress/config.js
+          cp ./.github/templates/vitepress-index.md  ./apexdocs-output/index.md
+
+      - name: Generate ApexDocs
+        run: |
+          # ── Changelog (diff HEAD~1 → HEAD) ────────────────────────────────
+          if [ "$(git rev-list --count HEAD)" -gt 1 ]; then
+            git checkout HEAD~1 -- force-app/
+            cp -r force-app/ ./temp-previous-version/
+            git checkout HEAD  -- force-app/
+            apexdocs changelog \
+              --previousVersionDir ./temp-previous-version \
+              --currentVersionDir  force-app/ \
+              --targetDir          ./apexdocs-output/changelog \
+              --fileName           "changelog" \
+              --scope              global public private protected
+          else
+            printf "# Changelog\n\nInitial version — no previous changes to compare." \
+              > ./apexdocs-output/changelog/changelog.md
+          fi
+
+          # ── Apex class docs ───────────────────────────────────────────────
+          apexdocs markdown \
+            --sourceDir          force-app/ \
+            --targetDir          ./apexdocs-output/markdown \
+            --scope              global public private protected \
+            --sortAlphabetically true \
+            --includeMetadata    true
+
+          # ── OpenAPI spec ──────────────────────────────────────────────────
+          apexdocs openapi \
+            --sourceDir  force-app/ \
+            --targetDir  ./apexdocs-output/openapi \
+            --fileName   "pfe-hiring-manager-api" \
+            --title      "PFE Hiring Manager REST API" \
+            --apiVersion "1.0.0"
+
+          # Copy OpenAPI JSON to public/ so VitePress can serve it
+          cp ./apexdocs-output/openapi/pfe-hiring-manager-api.json \
+             ./apexdocs-output/public/ 2>/dev/null || true
+
+          # OpenAPI page
+          cat > ./apexdocs-output/openapi.md << 'EOF'
+          # OpenAPI Specification
+
+          The PFE Hiring Manager REST API is documented using the OpenAPI specification.
+
+          [Download OpenAPI Specification](/pfe-hiring-manager-api.json)
+          EOF
+
+      - name: Build VitePress site
+        run: |
+          cd ./apexdocs-output
+          npx vitepress build
+          ls -la ./.vitepress/dist/
+
+      # Copy the Code Analyzer report into the built site root.
+      # The nav link in vitepress-config.js points to /PFE_Hiring_Manager/report.html,
+      # which resolves to this file on GitHub Pages.
+      - name: Copy Code Analyzer report into site root
+        run: |
+          if [ -f "./code-analyzer-results/report.html" ]; then
+            cp ./code-analyzer-results/report.html \
+               ./apexdocs-output/.vitepress/dist/report.html
+            echo "Code Analyzer report copied."
+          else
+            # Placeholder so the link is never a 404
+            cat > ./apexdocs-output/.vitepress/dist/report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Code Analyzer Report</title></head>
+          <body><h1>Code Analyzer report not available for this run.</h1></body>
+          </html>
+          EOF
+            echo "Placeholder report created."
+          fi
+
+      # ── MAIN → Deploy to GitHub Pages ─────────────────────────────────────
+      - name: Setup Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./apexdocs-output/.vitepress/dist
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # ── DEV → Upload as downloadable preview artifact ─────────────────────
+      - name: Upload site as preview artifact (dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-preview-${{ github.sha }}
+          path: ./apexdocs-output/.vitepress/dist
+          retention-days: 7
