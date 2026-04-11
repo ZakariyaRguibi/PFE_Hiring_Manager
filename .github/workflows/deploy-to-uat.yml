@@ -60,6 +60,7 @@ jobs:
           sf project deploy start \
             --source-dir force-app \
             --target-org uat-org \
+            --ignore-conflicts \
             --wait 20 \
             --verbose
 

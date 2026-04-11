@@ -1,6 +1,7 @@
 export default {
   title: "PFE Hiring Manager — Documentation",
-  description: "Apex documentation for the PFE Hiring Manager Salesforce project",
+  description:
+    "Apex documentation for the PFE Hiring Manager Salesforce project",
   base: "/PFE_Hiring_Manager/",
   themeConfig: {
     nav: [

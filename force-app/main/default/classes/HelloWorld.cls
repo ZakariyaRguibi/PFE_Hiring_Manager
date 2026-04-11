@@ -9,6 +9,7 @@
  * @since 0.1.0
  * @group Utilities
  * @see HelloWorldException
+ * @date 2024-06-01
  */
 public with sharing class HelloWorld {
   /** @description Default greeting language when none is specified. */
@@ -41,7 +42,7 @@ public with sharing class HelloWorld {
    * System.debug(msg); // Hello, Alice!
    *
    * @param name The name of the person to greet. Must not be null or blank.
-   * @return A greeting string in the form `Hello, <name>!`.
+   * @return A greeting string in the form `Hello, {name}!`.
    * @throws HelloWorldException if `name` is null or blank.
    */
   public static String greetByName(String name) {
