@@ -42,7 +42,7 @@ public with sharing class HelloWorld {
    * System.debug(msg); // Hello, Alice!
    *
    * @param name The name of the person to greet. Must not be null or blank.
-   * @return A greeting string in the form `Hello, <name>!`.
+   * @return A greeting string in the form `Hello, {name}!`.
    * @throws HelloWorldException if `name` is null or blank.
    */
   public static String greetByName(String name) {
