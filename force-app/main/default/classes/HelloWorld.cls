@@ -116,7 +116,9 @@ public with sharing class HelloWorld {
    * } catch (HelloWorld.HelloWorldException e) {
    *   System.debug(e.getMessage());
    * }
+   *
    */
+
   public class HelloWorldException extends Exception {
   }
 }
