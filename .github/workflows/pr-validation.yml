@@ -11,7 +11,7 @@ on:
       - "docs/**"
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   statuses: write
 
@@ -64,8 +64,15 @@ jobs:
           subjectPatternError: The subject must start with a lowercase letter.
           wip: true
 
-      - name: Check code formatting (Prettier)
-        run: npm run prettier:verify
+      - name: Auto-format code (Prettier)
+        run: npm run prettier
+
+      - name: Commit formatting changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format via Prettier [skip ci]"
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions[bot]@users.noreply.github.com
 
       - name: Install Salesforce CLI
         run: |
