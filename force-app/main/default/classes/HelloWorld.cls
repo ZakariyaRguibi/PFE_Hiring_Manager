@@ -9,6 +9,7 @@
  * @since 0.1.0
  * @group Utilities
  * @see HelloWorldException
+ * @date 2024-06-01
  */
 public with sharing class HelloWorld {
   /** @description Default greeting language when none is specified. */
