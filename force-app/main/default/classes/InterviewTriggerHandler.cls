@@ -10,7 +10,9 @@ public inherited sharing class InterviewTriggerHandler {
   /**
    * Score__c must be <= parent Interview_Stage__c.Max_Score__c
    */
-  @SuppressWarnings('PMD.ApexCRUDViolation') // Trigger handler runs in system mode by design
+  @SuppressWarnings(
+    'PMD.ApexCRUDViolation'
+  ) // Trigger handler runs in system mode by design
   private static void validateScoreAgainstMaxScore(List<Interview__c> newList) {
     Set<Id> stageIds = new Set<Id>();
     for (Interview__c interview : newList) {
@@ -48,7 +50,9 @@ public inherited sharing class InterviewTriggerHandler {
   /**
    * A candidate (via Job_Application__c) cannot have two interviews at the same Scheduled_DateTime__c.
    */
-  @SuppressWarnings('PMD.ApexCRUDViolation') // Trigger handler runs in system mode by design
+  @SuppressWarnings(
+    'PMD.ApexCRUDViolation'
+  ) // Trigger handler runs in system mode by design
   private static void validateNoDuplicateDateTime(
     List<Interview__c> newList,
     Map<Id, Interview__c> oldMap

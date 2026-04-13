@@ -10,7 +10,9 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
    * No overlapping slots for the same interviewer.
    * Two slots overlap if one starts before the other ends.
    */
-  @SuppressWarnings('PMD.ApexCRUDViolation') // Trigger handler runs in system mode by design
+  @SuppressWarnings(
+    'PMD.ApexCRUDViolation'
+  ) // Trigger handler runs in system mode by design
   private static void validateNoOverlappingSlots(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
