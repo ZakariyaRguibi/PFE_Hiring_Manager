@@ -1,3 +1,11 @@
+/**
+ * @description Trigger on Job_Application__c to prevent a candidate from having
+ *              more than one active application for the same job position.
+ *              A candidate is allowed to reapply if their previous application
+ *              was Rejected or Withdrawn.
+ * @author Hiba Balhirch
+ * @date 2026-04-14
+ */
 trigger JobApplicationTrigger on Job_Application__c (before insert) {
 
     Set<Id> candidateIds = new Set<Id>();
