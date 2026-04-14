@@ -98,12 +98,23 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
 
     List<Availability_Slot__c> existing = queryOverlappingCandidates(toCheck);
 
+    Map<Id, List<Availability_Slot__c>> byInterviewer = new Map<Id, List<Availability_Slot__c>>();
+    for (Availability_Slot__c ex : existing) {
+      if (!byInterviewer.containsKey(ex.Interviewer__c)) {
+        byInterviewer.put(ex.Interviewer__c, new List<Availability_Slot__c>());
+      }
+      byInterviewer.get(ex.Interviewer__c).add(ex);
+    }
+
     for (Availability_Slot__c slot : toCheck) {
-      for (Availability_Slot__c ex : existing) {
+      List<Availability_Slot__c> candidates = byInterviewer.get(
+        slot.Interviewer__c
+      );
+      if (candidates == null) {
+        continue;
+      }
+      for (Availability_Slot__c ex : candidates) {
         if (ex.Id == slot.Id) {
-          continue;
-        }
-        if (ex.Interviewer__c != slot.Interviewer__c) {
           continue;
         }
         if (

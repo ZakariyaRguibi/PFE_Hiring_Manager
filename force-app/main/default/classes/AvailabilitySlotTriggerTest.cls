@@ -3,7 +3,7 @@ private class AvailabilitySlotTriggerTest {
   // ─── Test Data Setup ──────────────────────────────────────────────────────
 
   private static User createUser(String lastName) {
-    Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+    Id profileId = UserInfo.getProfileId();
     User u = new User(
       LastName = lastName,
       Email = lastName.toLowerCase() + '@test.example.com',
@@ -15,7 +15,7 @@ private class AvailabilitySlotTriggerTest {
       LocaleSidKey = 'fr_FR',
       EmailEncodingKey = 'UTF-8',
       LanguageLocaleKey = 'en_US',
-      ProfileId = p.Id
+      ProfileId = profileId
     );
     insert u;
     return u;

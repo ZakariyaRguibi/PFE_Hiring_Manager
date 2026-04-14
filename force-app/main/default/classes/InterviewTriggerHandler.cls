@@ -133,7 +133,7 @@ public inherited sharing class InterviewTriggerHandler {
       WHERE
         Job_Application__c IN :appIds
         AND Scheduled_DateTime__c IN :dateTimes
-        AND Status__c NOT IN ('Cancelled', 'No Show')
+        AND Status__c NOT IN ('Cancelled', 'No_Show')
       WITH SYSTEM_MODE
     ];
 
@@ -145,11 +145,19 @@ public inherited sharing class InterviewTriggerHandler {
       );
     }
 
+    Set<String> batchKeys = new Set<String>();
     for (Interview__c interview : toCheck) {
       String key =
         interview.Job_Application__c +
         '_' +
         interview.Scheduled_DateTime__c;
+      if (batchKeys.contains(key)) {
+        interview.Scheduled_DateTime__c.addError(
+          'This candidate already has an interview scheduled at this date and time.'
+        );
+        continue;
+      }
+      batchKeys.add(key);
       if (existingKeyToId.containsKey(key)) {
         Id conflictId = existingKeyToId.get(key);
         if (conflictId != interview.Id) {

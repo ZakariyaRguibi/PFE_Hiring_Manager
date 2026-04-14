@@ -26,7 +26,8 @@ private class InterviewTriggerTest {
     Candidate__c c = new Candidate__c(
       FirstName__c = 'Test',
       LastName__c = 'Candidate',
-      Email__c = 'test@example.com'
+      Email__c = 'test@example.com',
+      Phone__c = '0644554253'
     );
     insert c;
     return c;

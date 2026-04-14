@@ -20,12 +20,6 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   private static User createUser() {
-    Profile p = [
-      SELECT Id
-      FROM Profile
-      WHERE Name = 'Standard User'
-      LIMIT 1
-    ];
     User u = new User(
       Alias = 'tmtest',
       Email = 'tmtest@example.com',
@@ -33,7 +27,7 @@ private class InterviewStageTeamMemberTriggerTest {
       LastName = 'TMTest',
       LanguageLocaleKey = 'en_US',
       LocaleSidKey = 'en_US',
-      ProfileId = p.Id,
+      ProfileId = UserInfo.getProfileId(),
       TimeZoneSidKey = 'America/Los_Angeles',
       UserName = 'tmtest_' + System.now().getTime() + '@example.com'
     );
