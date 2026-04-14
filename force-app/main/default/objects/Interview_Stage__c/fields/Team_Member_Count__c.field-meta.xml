@@ -2,7 +2,8 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Team_Member_Count__c</fullName>
     <label>Team Member Count</label>
-    <summaryForeignKey>Interview_Stage_Team_Member__c.Interview_Stage__c</summaryForeignKey>
+    <summaryForeignKey
+  >Interview_Stage_Team_Member__c.Interview_Stage__c</summaryForeignKey>
     <summaryOperation>COUNT</summaryOperation>
     <trackTrending>false</trackTrending>
     <type>Summary</type>
