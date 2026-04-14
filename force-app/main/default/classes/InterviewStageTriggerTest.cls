@@ -23,7 +23,7 @@ private class InterviewStageTriggerTest {
   // ─── Insert Tests ──────────────────────────────────────────────────────
 
   @IsTest
-  static void testInsert_uniqueStageNumber_passes() {
+  static void insertUniqueStageNumberPasses() {
     Job_Position__c pos = createPosition('Dev Position');
 
     Test.startTest();
@@ -39,7 +39,7 @@ private class InterviewStageTriggerTest {
   }
 
   @IsTest
-  static void testInsert_duplicateStageNumberSamePosition_fails() {
+  static void insertDuplicateStageNumberSamePositionFails() {
     Job_Position__c pos = createPosition('Dev Position');
     insert buildStage(pos.Id, 1);
 
@@ -57,7 +57,7 @@ private class InterviewStageTriggerTest {
   }
 
   @IsTest
-  static void testInsert_sameStageNumberDifferentPositions_passes() {
+  static void insertSameStageNumberDifferentPositionsPasses() {
     Job_Position__c pos1 = createPosition('Position A');
     Job_Position__c pos2 = createPosition('Position B');
     insert buildStage(pos1.Id, 1);
@@ -75,7 +75,7 @@ private class InterviewStageTriggerTest {
   }
 
   @IsTest
-  static void testInsert_duplicateWithinBatch_fails() {
+  static void insertDuplicateWithinBatchFails() {
     Job_Position__c pos = createPosition('Dev Position');
 
     Test.startTest();
@@ -100,7 +100,7 @@ private class InterviewStageTriggerTest {
   // ─── Update Tests ──────────────────────────────────────────────────────
 
   @IsTest
-  static void testUpdate_changeToExistingNumber_fails() {
+  static void updateChangeToExistingNumberFails() {
     Job_Position__c pos = createPosition('Dev Position');
     insert buildStage(pos.Id, 1);
     Interview_Stage__c stage2 = buildStage(pos.Id, 2);
@@ -124,7 +124,7 @@ private class InterviewStageTriggerTest {
   }
 
   @IsTest
-  static void testUpdate_sameNumber_passes() {
+  static void updateSameNumberPasses() {
     Job_Position__c pos = createPosition('Dev Position');
     Interview_Stage__c stage = buildStage(pos.Id, 1);
     insert stage;

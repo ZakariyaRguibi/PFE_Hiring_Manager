@@ -36,7 +36,7 @@ private class AvailabilitySlotTriggerTest {
   // ─── Overlap Tests ────────────────────────────────────────────────────────
 
   @IsTest
-  static void testOverlap_sameInterviewer_fails() {
+  static void overlapSameInterviewerFails() {
     User interviewer = createUser('Smith');
     Datetime base = Datetime.now().addDays(1);
 
@@ -67,7 +67,7 @@ private class AvailabilitySlotTriggerTest {
   }
 
   @IsTest
-  static void testOverlap_sameInterviewer_exactAdjacent_passes() {
+  static void overlapSameInterviewerExactAdjacentPasses() {
     User interviewer = createUser('Jones');
     Datetime base = Datetime.now().addDays(1);
 
@@ -96,7 +96,7 @@ private class AvailabilitySlotTriggerTest {
   }
 
   @IsTest
-  static void testOverlap_differentInterviewer_passes() {
+  static void overlapDifferentInterviewerPasses() {
     User interviewer1 = createUser('Garcia');
     User interviewer2 = createUser('Martin');
     Datetime base = Datetime.now().addDays(1);
@@ -126,7 +126,7 @@ private class AvailabilitySlotTriggerTest {
   }
 
   @IsTest
-  static void testOverlap_sameInterviewer_noOverlap_passes() {
+  static void overlapSameInterviewerNoOverlapPasses() {
     User interviewer = createUser('Durand');
     Datetime base = Datetime.now().addDays(1);
 
@@ -154,7 +154,7 @@ private class AvailabilitySlotTriggerTest {
   }
 
   @IsTest
-  static void testOverlap_updateToOverlap_fails() {
+  static void overlapUpdateToOverlapFails() {
     User interviewer = createUser('Bernard');
     Datetime base = Datetime.now().addDays(1);
 

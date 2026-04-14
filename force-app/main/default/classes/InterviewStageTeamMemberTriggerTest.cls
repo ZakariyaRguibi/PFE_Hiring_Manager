@@ -44,7 +44,7 @@ private class InterviewStageTeamMemberTriggerTest {
   // ─── Insert Tests ──────────────────────────────────────────────────────
 
   @IsTest
-  static void testInsert_uniqueInterviewer_passes() {
+  static void insertUniqueInterviewerPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
     User interviewer = createUser();
@@ -65,7 +65,7 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   @IsTest
-  static void testInsert_duplicateInterviewerSameStage_fails() {
+  static void insertDuplicateInterviewerSameStageFails() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
     User interviewer = createUser();
@@ -95,7 +95,7 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   @IsTest
-  static void testInsert_sameInterviewerDifferentStages_passes() {
+  static void insertSameInterviewerDifferentStagesPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage1 = createStage(pos.Id, 1);
     Interview_Stage__c stage2 = createStage(pos.Id, 2);
@@ -122,7 +122,7 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   @IsTest
-  static void testInsert_nullInterviewer_passes() {
+  static void insertNullInterviewerPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
 
@@ -141,7 +141,7 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   @IsTest
-  static void testInsert_duplicateInterviewerWithinBatch_fails() {
+  static void insertDuplicateInterviewerWithinBatchFails() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
     User interviewer = createUser();
@@ -174,7 +174,7 @@ private class InterviewStageTeamMemberTriggerTest {
   // ─── Update Tests ──────────────────────────────────────────────────────
 
   @IsTest
-  static void testUpdate_changeToExistingInterviewer_fails() {
+  static void updateChangeToExistingInterviewerFails() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
     User interviewer1 = createUser();
@@ -208,7 +208,7 @@ private class InterviewStageTeamMemberTriggerTest {
   }
 
   @IsTest
-  static void testUpdate_sameInterviewer_passes() {
+  static void updateSameInterviewerPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 1);
     User interviewer = createUser();

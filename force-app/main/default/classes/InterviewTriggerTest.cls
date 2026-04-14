@@ -61,7 +61,7 @@ private class InterviewTriggerTest {
   // ─── Score Validation Tests ───────────────────────────────────────────────
 
   @IsTest
-  static void testScore_belowMax_passes() {
+  static void scoreBelowMaxPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();
@@ -80,7 +80,7 @@ private class InterviewTriggerTest {
   }
 
   @IsTest
-  static void testScore_equalMax_passes() {
+  static void scoreEqualMaxPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();
@@ -99,7 +99,7 @@ private class InterviewTriggerTest {
   }
 
   @IsTest
-  static void testScore_aboveMax_fails() {
+  static void scoreAboveMaxFails() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();
@@ -122,7 +122,7 @@ private class InterviewTriggerTest {
   // ─── Duplicate DateTime Validation Tests ─────────────────────────────────
 
   @IsTest
-  static void testDuplicateDateTime_sameCandidate_fails() {
+  static void duplicateDateTimeSameCandidateFails() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();
@@ -147,7 +147,7 @@ private class InterviewTriggerTest {
   }
 
   @IsTest
-  static void testDuplicateDateTime_differentTime_passes() {
+  static void duplicateDateTimeDifferentTimePasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();
@@ -179,7 +179,7 @@ private class InterviewTriggerTest {
   }
 
   @IsTest
-  static void testDuplicateDateTime_cancelledIgnored_passes() {
+  static void duplicateDateTimeCancelledIgnoredPasses() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 100);
     Candidate__c cand = createCandidate();

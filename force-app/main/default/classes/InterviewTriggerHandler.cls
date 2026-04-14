@@ -42,21 +42,31 @@ public inherited sharing class InterviewTriggerHandler {
 
     for (Interview__c interview : newList) {
       if (interview.Interview_Stage__c != null && interview.Score__c != null) {
-        Interview_Stage__c stage = stagesMap.get(interview.Interview_Stage__c);
-        if (
-          stage != null &&
-          stage.Max_Score__c != null &&
-          interview.Score__c > stage.Max_Score__c
-        ) {
-          interview.Score__c.addError(
-            'Score (' +
-              interview.Score__c +
-              ') cannot exceed the stage\'s Max Score (' +
-              stage.Max_Score__c +
-              ').'
-          );
-        }
+        checkScoreAgainstStage(interview, stagesMap.get(interview.Interview_Stage__c));
       }
+    }
+  }
+
+  /**
+   * @description Adds a field error if the interview score exceeds the stage max.
+   * @param interview the interview record being validated
+   * @param stage the parent Interview_Stage__c record
+   */
+  private static void checkScoreAgainstStage(
+    Interview__c interview,
+    Interview_Stage__c stage
+  ) {
+    if (stage == null || stage.Max_Score__c == null) {
+      return;
+    }
+    if (interview.Score__c > stage.Max_Score__c) {
+      interview.Score__c.addError(
+        'Score (' +
+          interview.Score__c +
+          ') cannot exceed the stage\'s Max Score (' +
+          stage.Max_Score__c +
+          ').'
+      );
     }
   }
 
