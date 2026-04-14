@@ -42,7 +42,10 @@ public inherited sharing class InterviewTriggerHandler {
 
     for (Interview__c interview : newList) {
       if (interview.Interview_Stage__c != null && interview.Score__c != null) {
-        checkScoreAgainstStage(interview, stagesMap.get(interview.Interview_Stage__c));
+        checkScoreAgainstStage(
+          interview,
+          stagesMap.get(interview.Interview_Stage__c)
+        );
       }
     }
   }
