@@ -160,5 +160,6 @@
     </nameField>
     <pluralLabel>Job Applications</pluralLabel>
     <searchLayouts />
-    <sharingModel>ControlledByParent</sharingModel>    <visibility>Public</visibility>
+    <sharingModel>ControlledByParent</sharingModel>
+    <visibility>Public</visibility>
 </CustomObject>
