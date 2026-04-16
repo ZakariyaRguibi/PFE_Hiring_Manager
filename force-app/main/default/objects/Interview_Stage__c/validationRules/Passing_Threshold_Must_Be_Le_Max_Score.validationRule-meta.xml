@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Passing_Threshold_Must_Be_Le_Max_Score</fullName>
     <active>true</active>
-    <description>Passing Threshold must be less than or equal to Max Score.</description>
+    <description
+  >Passing Threshold must be less than or equal to Max Score.</description>
     <errorConditionFormula>AND(
     NOT(ISBLANK(Passing_Threshold__c)),
     NOT(ISBLANK(Max_Score__c)),

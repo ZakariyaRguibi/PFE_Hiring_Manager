@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
@@ -24,7 +24,8 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <customErrorMessages>
-            <errorMessage>Cannot activate this Job Position: the sum of all Interview Stage weights must equal 100%. Current total is {!totalWeight}%.</errorMessage>
+            <errorMessage
+      >Cannot activate this Job Position: the sum of all Interview Stage weights must equal 100%. Current total is {!totalWeight}%.</errorMessage>
             <fieldSelection>Status__c</fieldSelection>
             <isFieldError>true</isFieldError>
         </customErrorMessages>
@@ -51,8 +52,10 @@
             <label>Weight Equals 100</label>
         </rules>
     </decisions>
-    <description>Before a Job Position is activated (Status set to Open), validates that the sum of all Interview Stage weights equals 100. Blocks the save if the total differs.</description>
-    <interviewLabel>Validate Stage Weights On Activation {!$Flow.CurrentDateTime}</interviewLabel>
+    <description
+  >Before a Job Position is activated (Status set to Open), validates that the sum of all Interview Stage weights equals 100. Blocks the save if the total differs.</description>
+    <interviewLabel
+  >Validate Stage Weights On Activation {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Validate Stage Weights On Activation</label>
     <loops>
         <name>Loop_Stages</name>
@@ -86,7 +89,8 @@
         <label>Get Interview Stages</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound
+    >false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Loop_Stages</targetReference>
         </connector>
