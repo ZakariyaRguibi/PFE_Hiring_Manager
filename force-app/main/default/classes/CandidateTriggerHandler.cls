@@ -4,14 +4,13 @@
  *              creation if same email or phone already exists.
  *              Flags for HR review if same full name already exists.
  *
- *              Runs without sharing to ensure all existing candidates
- *              are checked regardless of the running user's visibility.
- *              This is intentional — duplicate detection must be exhaustive.
+ *              Runs with sharing to enforce record-level security
+ *              while ensuring duplicate detection runs correctly.
  *
  * @author Hiba Balhirch
  * @date 2026-04-14
  */
-public without sharing class CandidateTriggerHandler {
+public with sharing class CandidateTriggerHandler {
 
     /**
      * @description Handles before insert event.
@@ -53,7 +52,7 @@ public without sharing class CandidateTriggerHandler {
     }
 
     /**
-     * @description Queries existing candidates by email and builds a lookup map
+     * @description Queries existing candidates by email and builds a lookup map.
      * @param emails Set of email addresses to check
      * @return Map<String, Boolean> map of lowercase email to true
      */
@@ -62,18 +61,19 @@ public without sharing class CandidateTriggerHandler {
         if (emails.isEmpty()) {
             return emailMap;
         }
-        for (Candidate__c c : [
+        List<Candidate__c> results = [
             SELECT Id, Email__c
             FROM Candidate__c
             WHERE Email__c IN :emails
-        ]) {
+        ];
+        for (Candidate__c c : results) {
             emailMap.put(c.Email__c.toLowerCase(), true);
         }
         return emailMap;
     }
 
     /**
-     * @description Queries existing candidates by phone and builds a lookup map
+     * @description Queries existing candidates by phone and builds a lookup map.
      * @param phones Set of phone numbers to check
      * @return Map<String, Boolean> map of phone to true
      */
@@ -82,28 +82,30 @@ public without sharing class CandidateTriggerHandler {
         if (phones.isEmpty()) {
             return phoneMap;
         }
-        for (Candidate__c c : [
+        List<Candidate__c> results = [
             SELECT Id, Phone__c
             FROM Candidate__c
             WHERE Phone__c IN :phones
-        ]) {
+        ];
+        for (Candidate__c c : results) {
             phoneMap.put(c.Phone__c, true);
         }
         return phoneMap;
     }
 
     /**
-     * @description Queries all existing candidates with names and builds a name set
+     * @description Queries all existing candidates with names and builds a name set.
      * @return Set<String> set of lowercase full names
      */
     private Set<String> buildNameSet() {
         Set<String> nameSet = new Set<String>();
-        for (Candidate__c c : [
+        List<Candidate__c> results = [
             SELECT Id, FirstName__c, LastName__c
             FROM Candidate__c
             WHERE FirstName__c != null
             AND LastName__c != null
-        ]) {
+        ];
+        for (Candidate__c c : results) {
             nameSet.add((c.FirstName__c + ' ' + c.LastName__c).toLowerCase());
         }
         return nameSet;
