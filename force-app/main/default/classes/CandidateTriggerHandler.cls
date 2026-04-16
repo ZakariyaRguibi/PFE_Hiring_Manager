@@ -11,15 +11,14 @@
  * @date 2026-04-14
  */
 public with sharing class CandidateTriggerHandler {
-
-    /**
-     * @description Handles before insert event.
-     *              Checks for duplicate email, phone and full name.
-     * @param newCandidates List of new Candidate__c records being inserted
-     */
-    public void onBeforeInsert(List<Candidate__c> newCandidates) {
-        Set<String> emails = new Set<String>();
-        Set<String> phones = new Set<String>();
+  /**
+   * @description Handles before insert event.
+   *              Checks for duplicate email, phone and full name.
+   * @param newCandidates List of new Candidate__c records being inserted
+   */
+  public void onBeforeInsert(List<Candidate__c> newCandidates) {
+    Set<String> emails = new Set<String>();
+    Set<String> phones = new Set<String>();
 
         for (Candidate__c c : newCandidates) {
             if (c.Email__c != null) {
