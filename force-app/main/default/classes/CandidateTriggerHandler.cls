@@ -11,15 +11,14 @@
  * @date 2026-04-14
  */
 public with sharing class CandidateTriggerHandler {
-
-    /**
-     * @description Handles before insert event.
-     *              Checks for duplicate email, phone and full name.
-     * @param newCandidates List of new Candidate__c records being inserted
-     */
-    public void onBeforeInsert(List<Candidate__c> newCandidates) {
-        Set<String> emails = new Set<String>();
-        Set<String> phones = new Set<String>();
+  /**
+   * @description Handles before insert event.
+   *              Checks for duplicate email, phone and full name.
+   * @param newCandidates List of new Candidate__c records being inserted
+   */
+  public void onBeforeInsert(List<Candidate__c> newCandidates) {
+    Set<String> emails = new Set<String>();
+    Set<String> phones = new Set<String>();
 
     for (Candidate__c c : newCandidates) {
       if (c.Email__c != null) {
@@ -55,63 +54,62 @@ public with sharing class CandidateTriggerHandler {
     }
   }
 
-    /**
-     * @description Queries existing candidates by email and builds a lookup map.
-     * @param emails Set of email addresses to check
-     * @return Map<String, Boolean> map of lowercase email to true
-     */
-    private Map<String, Boolean> buildEmailMap(Set<String> emails) {
-        Map<String, Boolean> emailMap = new Map<String, Boolean>();
-        if (emails.isEmpty()) {
-            return emailMap;
-        }
-        List<Candidate__c> results = [
-            SELECT Id, Email__c
-            FROM Candidate__c
-            WHERE Email__c IN :emails
-        ];
-        for (Candidate__c c : results) {
-            emailMap.put(c.Email__c.toLowerCase(), true);
-        }
-        return emailMap;
+  /**
+   * @description Queries existing candidates by email and builds a lookup map.
+   * @param emails Set of email addresses to check
+   * @return Map<String, Boolean> map of lowercase email to true
+   */
+  private Map<String, Boolean> buildEmailMap(Set<String> emails) {
+    Map<String, Boolean> emailMap = new Map<String, Boolean>();
+    if (emails.isEmpty()) {
+      return emailMap;
     }
+    List<Candidate__c> results = [
+      SELECT Id, Email__c
+      FROM Candidate__c
+      WHERE Email__c IN :emails
+    ];
+    for (Candidate__c c : results) {
+      emailMap.put(c.Email__c.toLowerCase(), true);
+    }
+    return emailMap;
+  }
 
-    /**
-     * @description Queries existing candidates by phone and builds a lookup map.
-     * @param phones Set of phone numbers to check
-     * @return Map<String, Boolean> map of phone to true
-     */
-    private Map<String, Boolean> buildPhoneMap(Set<String> phones) {
-        Map<String, Boolean> phoneMap = new Map<String, Boolean>();
-        if (phones.isEmpty()) {
-            return phoneMap;
-        }
-        List<Candidate__c> results = [
-            SELECT Id, Phone__c
-            FROM Candidate__c
-            WHERE Phone__c IN :phones
-        ];
-        for (Candidate__c c : results) {
-            phoneMap.put(c.Phone__c, true);
-        }
-        return phoneMap;
+  /**
+   * @description Queries existing candidates by phone and builds a lookup map.
+   * @param phones Set of phone numbers to check
+   * @return Map<String, Boolean> map of phone to true
+   */
+  private Map<String, Boolean> buildPhoneMap(Set<String> phones) {
+    Map<String, Boolean> phoneMap = new Map<String, Boolean>();
+    if (phones.isEmpty()) {
+      return phoneMap;
     }
+    List<Candidate__c> results = [
+      SELECT Id, Phone__c
+      FROM Candidate__c
+      WHERE Phone__c IN :phones
+    ];
+    for (Candidate__c c : results) {
+      phoneMap.put(c.Phone__c, true);
+    }
+    return phoneMap;
+  }
 
-    /**
-     * @description Queries all existing candidates with names and builds a name set.
-     * @return Set<String> set of lowercase full names
-     */
-    private Set<String> buildNameSet() {
-        Set<String> nameSet = new Set<String>();
-        List<Candidate__c> results = [
-            SELECT Id, FirstName__c, LastName__c
-            FROM Candidate__c
-            WHERE FirstName__c != null
-            AND LastName__c != null
-        ];
-        for (Candidate__c c : results) {
-            nameSet.add((c.FirstName__c + ' ' + c.LastName__c).toLowerCase());
-        }
-        return nameSet;
+  /**
+   * @description Queries all existing candidates with names and builds a name set.
+   * @return Set<String> set of lowercase full names
+   */
+  private Set<String> buildNameSet() {
+    Set<String> nameSet = new Set<String>();
+    List<Candidate__c> results = [
+      SELECT Id, FirstName__c, LastName__c
+      FROM Candidate__c
+      WHERE FirstName__c != NULL AND LastName__c != NULL
+    ];
+    for (Candidate__c c : results) {
+      nameSet.add((c.FirstName__c + ' ' + c.LastName__c).toLowerCase());
     }
+    return nameSet;
+  }
 }
