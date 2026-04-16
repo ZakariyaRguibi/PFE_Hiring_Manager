@@ -124,6 +124,26 @@ private class InterviewStageTriggerTest {
   }
 
   @IsTest
+  static void updateSwapStageNumbersPasses() {
+    Job_Position__c pos = createPosition('Dev Position');
+    Interview_Stage__c stage1 = buildStage(pos.Id, 1);
+    Interview_Stage__c stage2 = buildStage(pos.Id, 2);
+    insert new List<Interview_Stage__c>{ stage1, stage2 };
+
+    Test.startTest();
+    stage1.Stage_Number__c = 2;
+    stage2.Stage_Number__c = 1;
+    update new List<Interview_Stage__c>{ stage1, stage2 };
+    Test.stopTest();
+
+    Map<Id, Interview_Stage__c> updated = new Map<Id, Interview_Stage__c>(
+      [SELECT Stage_Number__c FROM Interview_Stage__c WHERE Id IN :new List<Id>{ stage1.Id, stage2.Id }]
+    );
+    System.assertEquals(2, updated.get(stage1.Id).Stage_Number__c, 'stage1 should now be 2');
+    System.assertEquals(1, updated.get(stage2.Id).Stage_Number__c, 'stage2 should now be 1');
+  }
+
+  @IsTest
   static void updateSameNumberPasses() {
     Job_Position__c pos = createPosition('Dev Position');
     Interview_Stage__c stage = buildStage(pos.Id, 1);

@@ -22,6 +22,10 @@ public inherited sharing class InterviewStageTriggerHandler {
    * Salesforce field-level unique=true enforces global uniqueness, which is
    * too restrictive — stage numbers (1, 2, 3…) are naturally reused across
    * different positions. This method enforces scoped uniqueness instead.
+   *
+   * Records being updated are excluded from the SOQL so that swapping stage
+   * numbers between records in the same transaction is correctly allowed —
+   * duplicates within the transaction are detected via the in-memory batchKeys set.
    * @param newList records being inserted or updated
    * @param oldMap previous record state (null on insert)
    */
@@ -42,7 +46,7 @@ public inherited sharing class InterviewStageTriggerHandler {
       if (existingKeys.contains(key) || batchKeys.contains(key)) {
         stage.Stage_Number__c.addError(
           'Stage Number ' +
-            Integer.valueOf(stage.Stage_Number__c) +
+            String.valueOf(stage.Stage_Number__c.intValue()) +
             ' already exists for this Job Position.'
         );
       } else {
@@ -82,24 +86,30 @@ public inherited sharing class InterviewStageTriggerHandler {
   }
 
   /**
-   * Queries existing Interview_Stage__c records for the affected positions
-   * and returns a set of composite keys (Job_Position__c + '_' + Stage_Number__c).
+   * Queries existing Interview_Stage__c records for the affected positions,
+   * excluding the records currently being updated so that stage number swaps
+   * within a single transaction are not incorrectly flagged as duplicates.
+   * WITH SYSTEM_MODE bypasses FLS and sharing rules so the uniqueness check
+   * runs consistently regardless of the running user's field permissions.
    * @param toCheck records to check
-   * @return set of existing keys in the org
+   * @return set of existing composite keys (positionId + '_' + stageNumber)
    */
   private static Set<String> queryExistingKeys(
     List<Interview_Stage__c> toCheck
   ) {
     Set<Id> positionIds = new Set<Id>();
+    Set<Id> toCheckIds = new Set<Id>();
     for (Interview_Stage__c stage : toCheck) {
       positionIds.add(stage.Job_Position__c);
+      if (stage.Id != null) {
+        toCheckIds.add(stage.Id);
+      }
     }
     Set<String> keys = new Set<String>();
     for (Interview_Stage__c ex : [
       SELECT Id, Job_Position__c, Stage_Number__c
       FROM Interview_Stage__c
-      WHERE Job_Position__c IN :positionIds
-      WITH SECURITY_ENFORCED
+      WHERE Job_Position__c IN :positionIds AND Id NOT IN :toCheckIds WITH SYSTEM_MODE
     ]) {
       keys.add(ex.Job_Position__c + '_' + ex.Stage_Number__c);
     }
