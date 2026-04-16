@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Interview_Stage_Compact</fullName>
+    <fields>Stage_Number__c</fields>
+    <fields>Stage_Type__c</fields>
+    <fields>Passing_Threshold__c</fields>
+    <fields>Max_Score__c</fields>
+    <fields>Stage_Weight__c</fields>
+    <label>Interview Stage Compact</label>
+</CompactLayout>
