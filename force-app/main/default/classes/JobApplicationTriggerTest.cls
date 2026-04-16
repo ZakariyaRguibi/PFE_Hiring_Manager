@@ -45,8 +45,8 @@ private class JobApplicationTriggerTest {
             PermissionSetId = ps.Id
         );
 
-        return u;
-    }
+    return u;
+  }
 
     /**
      * @description Creates two job positions as a Recruiter user.
