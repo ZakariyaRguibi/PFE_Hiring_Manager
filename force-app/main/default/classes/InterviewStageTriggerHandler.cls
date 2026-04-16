@@ -109,7 +109,8 @@ public inherited sharing class InterviewStageTriggerHandler {
     for (Interview_Stage__c ex : [
       SELECT Id, Job_Position__c, Stage_Number__c
       FROM Interview_Stage__c
-      WHERE Job_Position__c IN :positionIds AND Id NOT IN :toCheckIds WITH SYSTEM_MODE
+      WHERE Job_Position__c IN :positionIds AND Id NOT IN :toCheckIds
+      WITH SYSTEM_MODE
     ]) {
       keys.add(ex.Job_Position__c + '_' + ex.Stage_Number__c);
     }
