@@ -14,17 +14,6 @@
  * @date 2026-04-14
  */
 public with sharing class JobApplicationTriggerHandler {
-  /**
-   * @description Handles before insert event.
-   *              Blocks insertion if an application already exists
-   *              for the same Candidate__c + Job_Position__c pair.
-   *              Also blocks duplicate pairs inside the same insert batch.
-   * @param newApplications List of new Job_Application__c records being inserted
-   */
-  public void onBeforeInsert(List<Job_Application__c> newApplications) {
-    Set<Id> candidateIds = new Set<Id>();
-    Set<Id> positionIds = new Set<Id>();
-
 
     /**
      * @description Handles before insert event.
