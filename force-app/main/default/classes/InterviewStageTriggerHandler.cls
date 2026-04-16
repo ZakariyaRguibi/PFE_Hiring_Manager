@@ -1,4 +1,15 @@
+/**
+ * Handler for InterviewStageTrigger.
+ * Enforces that Stage_Number__c is unique within the same Job_Position__c.
+ * Salesforce field-level unique=true is too restrictive (global uniqueness),
+ * so scoped uniqueness is enforced here via SOQL instead.
+ */
 public inherited sharing class InterviewStageTriggerHandler {
+  /**
+   * Entry point called by the trigger on before insert and before update.
+   * @param newList records being inserted or updated
+   * @param oldMap previous record state (null on insert)
+   */
   public static void handle(
     List<Interview_Stage__c> newList,
     Map<Id, Interview_Stage__c> oldMap
@@ -40,6 +51,13 @@ public inherited sharing class InterviewStageTriggerHandler {
     }
   }
 
+  /**
+   * Filters out records where neither Stage_Number__c nor Job_Position__c changed,
+   * avoiding unnecessary SOQL on unrelated updates.
+   * @param newList incoming records
+   * @param oldMap previous state map (null on insert)
+   * @return records that require a uniqueness check
+   */
   private static List<Interview_Stage__c> collectChangedStages(
     List<Interview_Stage__c> newList,
     Map<Id, Interview_Stage__c> oldMap
@@ -63,6 +81,12 @@ public inherited sharing class InterviewStageTriggerHandler {
     return toCheck;
   }
 
+  /**
+   * Queries existing Interview_Stage__c records for the affected positions
+   * and returns a set of composite keys (Job_Position__c + '_' + Stage_Number__c).
+   * @param toCheck records to check
+   * @return set of existing keys in the org
+   */
   private static Set<String> queryExistingKeys(
     List<Interview_Stage__c> toCheck
   ) {
