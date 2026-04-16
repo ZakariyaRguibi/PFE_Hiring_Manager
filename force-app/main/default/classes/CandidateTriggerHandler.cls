@@ -21,39 +21,35 @@ public with sharing class CandidateTriggerHandler {
         Set<String> emails = new Set<String>();
         Set<String> phones = new Set<String>();
 
-    for (Candidate__c c : newCandidates) {
-      if (c.Email__c != null) {
-        emails.add(c.Email__c.toLowerCase());
-      }
-      if (c.Phone__c != null) {
-        phones.add(c.Phone__c);
-      }
-    }
-
-    Map<String, Boolean> emailMap = buildEmailMap(emails);
-    Map<String, Boolean> phoneMap = buildPhoneMap(phones);
-    Set<String> nameSet = buildNameSet();
-
-    for (Candidate__c c : newCandidates) {
-      if (
-        c.Email__c != null && emailMap.containsKey(c.Email__c.toLowerCase())
-      ) {
-        c.addError('A candidate with this email already exists in the system.');
-      }
-      if (c.Phone__c != null && phoneMap.containsKey(c.Phone__c)) {
-        c.addError(
-          'A candidate with this phone number already exists in the system.'
-        );
-      }
-      if (c.FirstName__c != null && c.LastName__c != null) {
-        String fullName = (c.FirstName__c + ' ' + c.LastName__c).toLowerCase();
-        if (nameSet.contains(fullName)) {
-          c.Duplicate_Flag__c = true;
-          c.Duplicate_Review_Status__c = 'Pending';
+        for (Candidate__c c : newCandidates) {
+            if (c.Email__c != null) {
+                emails.add(c.Email__c.toLowerCase());
+            }
+            if (c.Phone__c != null) {
+                phones.add(c.Phone__c);
+            }
         }
-      }
+
+        Map<String, Boolean> emailMap = buildEmailMap(emails);
+        Map<String, Boolean> phoneMap = buildPhoneMap(phones);
+        Set<String> nameSet = buildNameSet();
+
+        for (Candidate__c c : newCandidates) {
+            if (c.Email__c != null && emailMap.containsKey(c.Email__c.toLowerCase())) {
+                c.addError('A candidate with this email already exists in the system.');
+            }
+            if (c.Phone__c != null && phoneMap.containsKey(c.Phone__c)) {
+                c.addError('A candidate with this phone number already exists in the system.');
+            }
+            if (c.FirstName__c != null && c.LastName__c != null) {
+                String fullName = (c.FirstName__c + ' ' + c.LastName__c).toLowerCase();
+                if (nameSet.contains(fullName)) {
+                    c.Duplicate_Flag__c = true;
+                    c.Duplicate_Review_Status__c = 'Pending';
+                }
+            }
+        }
     }
-  }
 
     /**
      * @description Queries existing candidates by email and builds a lookup map.
@@ -69,6 +65,7 @@ public with sharing class CandidateTriggerHandler {
             SELECT Id, Email__c
             FROM Candidate__c
             WHERE Email__c IN :emails
+            WITH USER_MODE
         ];
         for (Candidate__c c : results) {
             emailMap.put(c.Email__c.toLowerCase(), true);
@@ -79,7 +76,7 @@ public with sharing class CandidateTriggerHandler {
     /**
      * @description Queries existing candidates by phone and builds a lookup map.
      * @param phones Set of phone numbers to check
-     * @return Map<String, Boolean> map of phone to true
+     * @return Map<String, Boolean> map of lowercase phone to true
      */
     private Map<String, Boolean> buildPhoneMap(Set<String> phones) {
         Map<String, Boolean> phoneMap = new Map<String, Boolean>();
@@ -90,6 +87,7 @@ public with sharing class CandidateTriggerHandler {
             SELECT Id, Phone__c
             FROM Candidate__c
             WHERE Phone__c IN :phones
+            WITH USER_MODE
         ];
         for (Candidate__c c : results) {
             phoneMap.put(c.Phone__c, true);
@@ -108,6 +106,7 @@ public with sharing class CandidateTriggerHandler {
             FROM Candidate__c
             WHERE FirstName__c != null
             AND LastName__c != null
+            WITH USER_MODE
         ];
         for (Candidate__c c : results) {
             nameSet.add((c.FirstName__c + ' ' + c.LastName__c).toLowerCase());
