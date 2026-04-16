@@ -33,9 +33,9 @@ public with sharing class JobApplicationTriggerHandler {
       }
     }
 
-        if (candidateIds.isEmpty() || positionIds.isEmpty()) {
-            return;
-        }
+    if (candidateIds.isEmpty() || positionIds.isEmpty()) {
+      return;
+    }
 
     List<Job_Application__c> existing = [
       SELECT Id, Candidate__c, Job_Position__c

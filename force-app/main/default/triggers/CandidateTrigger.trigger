@@ -5,5 +5,5 @@
  * @date 2026-04-14
  */
 trigger CandidateTrigger on Candidate__c(before insert) {
-    new CandidateTriggerHandler().onBeforeInsert(Trigger.new);
+  new CandidateTriggerHandler().onBeforeInsert(Trigger.new);
 }
