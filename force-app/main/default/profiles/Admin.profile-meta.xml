@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>Guidance_Center_Demo_Manager</application>
@@ -1989,7 +1989,8 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Forecasting_Historical_Data__c.AmountWithoutManagerAdjustment__c</field>
+        <field
+    >Forecasting_Historical_Data__c.AmountWithoutManagerAdjustment__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -3584,22 +3585,26 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SDO_Service_Einstein_Agent_Helper__c.Recommendation_Field__c</field>
+        <field
+    >SDO_Service_Einstein_Agent_Helper__c.Recommendation_Field__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SDO_Service_Einstein_Agent_Helper__c.Recommendation_Value__c</field>
+        <field
+    >SDO_Service_Einstein_Agent_Helper__c.Recommendation_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SDO_Service_Einstein_Agent_Helper__c.Recommended_Article_Score__c</field>
+        <field
+    >SDO_Service_Einstein_Agent_Helper__c.Recommended_Article_Score__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SDO_Service_Einstein_Agent_Helper__c.Recommended_Article__c</field>
+        <field
+    >SDO_Service_Einstein_Agent_Helper__c.Recommended_Article__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
