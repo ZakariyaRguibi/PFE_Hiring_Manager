@@ -10,7 +10,7 @@
  *                interviews with the same candidate
  *
  * @author      Hiba Balhirch
- * @version     1.0
+ * @version     1.1
  */
 public with sharing class InterviewSharingHandler {
   // -----------------------------------------------

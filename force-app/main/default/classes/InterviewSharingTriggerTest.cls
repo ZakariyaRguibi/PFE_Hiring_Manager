@@ -1,12 +1,7 @@
 /**
  * @description Test class for InterviewSharingTrigger and InterviewSharingHandler.
- *              Verifies that Candidate__Share and Interview__Share records are correctly
- *              created, preserved, and deleted based on Interview assignment changes.
- *
- * @author      Hiba Balhirch
- * @version     1.0
  */
-@isTest
+@IsTest
 private class InterviewSharingTriggerTest {
   // -----------------------------------------------
   // TEST DATA SETUP

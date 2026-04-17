@@ -1,10 +1,9 @@
 /**
  * @description Trigger for Interview__c object.
  *              Delegates all logic to InterviewSharingHandler.
- *              Follows single-responsibility principle — no logic here.
  *
  * @author      Hiba Balhirch
- * @version     1.0
+ * @version     1.1
  */
 trigger InterviewSharingTrigger on Interview__c(
   after insert,
