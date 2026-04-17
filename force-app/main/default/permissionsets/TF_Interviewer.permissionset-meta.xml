@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Core permissions for TalentForce Interviewers. Limited access to conduct interviews and manage availability.</description>
+    <description
+  >Core permissions for TalentForce Interviewers. Limited access to conduct interviews and manage availability.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>TF Interviewer</label>
     <objectPermissions>

@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Portal permissions for TalentForce Candidates. Own data only, no internal fields.</description>
+    <description
+  >Portal permissions for TalentForce Candidates. Own data only, no internal fields.</description>
     <fieldPermissions>
         <editable>false</editable>
         <field>Job_Application__c.Stage__c</field>
