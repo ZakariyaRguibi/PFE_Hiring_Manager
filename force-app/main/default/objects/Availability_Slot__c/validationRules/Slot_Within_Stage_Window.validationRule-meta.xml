@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Slot_Within_Stage_Window</fullName>
     <active>true</active>
-    <description>Availability slot must fall within the Interview Stage start and end date window.</description>
+    <description
+  >Availability slot must fall within the Interview Stage start and end date window.</description>
     <errorConditionFormula>AND(
     NOT(ISBLANK(Interview_Stage__c)),
     NOT(ISBLANK(Start_DateTime__c)),
@@ -12,5 +13,6 @@
         DATEVALUE(End_DateTime__c) &gt; Interview_Stage__r.End_Date__c
     )
 )</errorConditionFormula>
-    <errorMessage>Availability slot must fall within the Interview Stage&apos;s Start Date and End Date window.</errorMessage>
+    <errorMessage
+  >Availability slot must fall within the Interview Stage&apos;s Start Date and End Date window.</errorMessage>
 </ValidationRule>
