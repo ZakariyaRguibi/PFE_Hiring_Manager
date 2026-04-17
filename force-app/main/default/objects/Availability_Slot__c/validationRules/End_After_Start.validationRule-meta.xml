@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>End_After_Start</fullName>
+    <active>true</active>
+    <description>End DateTime must be after Start DateTime.</description>
+    <errorConditionFormula>AND(
+    NOT(ISBLANK(End_DateTime__c)),
+    NOT(ISBLANK(Start_DateTime__c)),
+    End_DateTime__c &lt;= Start_DateTime__c
+)</errorConditionFormula>
+    <errorDisplayField>End_DateTime__c</errorDisplayField>
+    <errorMessage>End Date/Time must be after Start Date/Time.</errorMessage>
+</ValidationRule>

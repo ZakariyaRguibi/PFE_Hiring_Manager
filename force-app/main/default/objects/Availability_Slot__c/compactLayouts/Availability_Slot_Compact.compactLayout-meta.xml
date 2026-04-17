@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Availability_Slot_Compact</fullName>
+    <fields>Interviewer__c</fields>
+    <fields>Interview_Stage__c</fields>
+    <fields>Start_DateTime__c</fields>
+    <fields>End_DateTime__c</fields>
+    <fields>Is_Booked__c</fields>
+    <label>Availability Slot Compact</label>
+</CompactLayout>
