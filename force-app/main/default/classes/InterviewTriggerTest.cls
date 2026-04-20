@@ -1,7 +1,5 @@
 @IsTest
 private class InterviewTriggerTest {
-  // ─── Test Data Setup ──────────────────────────────────────────────────────
-
   private static Job_Position__c createPosition() {
     Job_Position__c pos = new Job_Position__c(Title__c = 'Test Position');
     insert pos;
@@ -23,14 +21,14 @@ private class InterviewTriggerTest {
   }
 
   private static Candidate__c createCandidate() {
-    Candidate__c c = new Candidate__c(
+    Candidate__c candidateRec = new Candidate__c(
       FirstName__c = 'Test',
       LastName__c = 'Candidate',
       Email__c = 'test@example.com',
       Phone__c = '0644554253'
     );
-    insert c;
-    return c;
+    insert candidateRec;
+    return candidateRec;
   }
 
   private static Job_Application__c createApplication(
@@ -45,21 +43,32 @@ private class InterviewTriggerTest {
     return app;
   }
 
-  private static Interview__c buildInterview(
-    Id stageId,
-    Id appId,
-    Decimal score,
-    Datetime scheduledDt
-  ) {
+  private static Interview__c buildInterview(Id stageId, Id appId) {
     return new Interview__c(
       Interview_Stage__c = stageId,
-      Job_Application__c = appId,
-      Score__c = score,
-      Scheduled_DateTime__c = scheduledDt
+      Job_Application__c = appId
     );
   }
 
-  // ─── Score Validation Tests ───────────────────────────────────────────────
+  private static Interview__c buildInterviewWithScore(
+    Id stageId,
+    Id appId,
+    Decimal score
+  ) {
+    Interview__c interviewRec = buildInterview(stageId, appId);
+    interviewRec.Score__c = score;
+    return interviewRec;
+  }
+
+  private static Interview__c buildInterviewWithSchedule(
+    Id stageId,
+    Id appId,
+    Datetime scheduledDt
+  ) {
+    Interview__c interviewRec = buildInterview(stageId, appId);
+    interviewRec.Scheduled_DateTime__c = scheduledDt;
+    return interviewRec;
+  }
 
   @IsTest
   static void scoreBelowMaxPasses() {
@@ -69,13 +78,13 @@ private class InterviewTriggerTest {
     Job_Application__c app = createApplication(pos.Id, cand.Id);
 
     Test.startTest();
-    Interview__c interview = buildInterview(stage.Id, app.Id, 80, null);
-    insert interview;
+    Interview__c interviewRec = buildInterviewWithScore(stage.Id, app.Id, 80);
+    insert interviewRec;
     Test.stopTest();
 
     System.assertNotEquals(
       null,
-      interview.Id,
+      interviewRec.Id,
       'Interview should be inserted when score <= max'
     );
   }
@@ -88,13 +97,13 @@ private class InterviewTriggerTest {
     Job_Application__c app = createApplication(pos.Id, cand.Id);
 
     Test.startTest();
-    Interview__c interview = buildInterview(stage.Id, app.Id, 100, null);
-    insert interview;
+    Interview__c interviewRec = buildInterviewWithScore(stage.Id, app.Id, 100);
+    insert interviewRec;
     Test.stopTest();
 
     System.assertNotEquals(
       null,
-      interview.Id,
+      interviewRec.Id,
       'Interview should be inserted when score = max'
     );
   }
@@ -108,8 +117,12 @@ private class InterviewTriggerTest {
 
     Test.startTest();
     try {
-      Interview__c interview = buildInterview(stage.Id, app.Id, 101, null);
-      insert interview;
+      Interview__c interviewRec = buildInterviewWithScore(
+        stage.Id,
+        app.Id,
+        101
+      );
+      insert interviewRec;
       System.assert(false, 'Expected exception for score exceeding max');
     } catch (DmlException e) {
       System.assert(
@@ -120,8 +133,6 @@ private class InterviewTriggerTest {
     Test.stopTest();
   }
 
-  // ─── Duplicate DateTime Validation Tests ─────────────────────────────────
-
   @IsTest
   static void duplicateDateTimeSameCandidateFails() {
     Job_Position__c pos = createPosition();
@@ -130,13 +141,21 @@ private class InterviewTriggerTest {
     Job_Application__c app = createApplication(pos.Id, cand.Id);
     Datetime dt = Datetime.now().addDays(1);
 
-    Interview__c first = buildInterview(stage.Id, app.Id, null, dt);
-    insert first;
+    Interview__c firstInterview = buildInterviewWithSchedule(
+      stage.Id,
+      app.Id,
+      dt
+    );
+    insert firstInterview;
 
     Test.startTest();
     try {
-      Interview__c duplicate = buildInterview(stage.Id, app.Id, null, dt);
-      insert duplicate;
+      Interview__c duplicateInterview = buildInterviewWithSchedule(
+        stage.Id,
+        app.Id,
+        dt
+      );
+      insert duplicateInterview;
       System.assert(false, 'Expected exception for duplicate DateTime');
     } catch (DmlException e) {
       System.assert(
@@ -154,27 +173,25 @@ private class InterviewTriggerTest {
     Candidate__c cand = createCandidate();
     Job_Application__c app = createApplication(pos.Id, cand.Id);
 
-    Interview__c first = buildInterview(
+    Interview__c firstInterview = buildInterviewWithSchedule(
       stage.Id,
       app.Id,
-      null,
       Datetime.now().addDays(1)
     );
-    insert first;
+    insert firstInterview;
 
     Test.startTest();
-    Interview__c second = buildInterview(
+    Interview__c secondInterview = buildInterviewWithSchedule(
       stage.Id,
       app.Id,
-      null,
       Datetime.now().addDays(2)
     );
-    insert second;
+    insert secondInterview;
     Test.stopTest();
 
     System.assertNotEquals(
       null,
-      second.Id,
+      secondInterview.Id,
       'Interview should be inserted at a different DateTime'
     );
   }
@@ -187,12 +204,20 @@ private class InterviewTriggerTest {
     Job_Application__c app = createApplication(pos.Id, cand.Id);
     Datetime dt = Datetime.now().addDays(1);
 
-    Interview__c cancelled = buildInterview(stage.Id, app.Id, null, dt);
-    cancelled.Status__c = 'Cancelled';
-    insert cancelled;
+    Interview__c cancelledInterview = buildInterviewWithSchedule(
+      stage.Id,
+      app.Id,
+      dt
+    );
+    cancelledInterview.Status__c = 'Cancelled';
+    insert cancelledInterview;
 
     Test.startTest();
-    Interview__c newInterview = buildInterview(stage.Id, app.Id, null, dt);
+    Interview__c newInterview = buildInterviewWithSchedule(
+      stage.Id,
+      app.Id,
+      dt
+    );
     insert newInterview;
     Test.stopTest();
 
