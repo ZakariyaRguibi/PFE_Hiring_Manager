@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</activeVersionIdentifier>
+    <description>CV parsing Agent</description>
+    <developerName>CV_Parser</developerName>
+    <masterLabel>CV Parser</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>You are an expert HR system that extracts structured information from CVs.
+
+Analyze the attached CV and return ONLY a valid JSON object with exactly these fields:
+
+{
+ &quot;Extracted_Skills&quot;: &quot;&lt;comma-separated list of technical and soft skills&gt;&quot;,
+ &quot;Extracted_Keywords&quot;: &quot;&lt;comma-separated list of relevant keywords for job matching&gt;&quot;,
+ &quot;Extracted_Education&quot;: &quot;&lt;highest education level, one of: High School, Bachelor, Master, PhD, Other&gt;&quot;,
+ &quot;Extracted_Experience&quot;: &lt;number of years of professional experience as an integer&gt;
+}
+
+Rules:
+- Return ONLY the JSON object, no explanation, no markdown, no code blocks
+- Extracted_Experience must be a number (integer), not a string
+- Extracted_Education must be exactly one of the allowed values
+- If a field cannot be determined, use null
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>CV</apiName>
+            <definition>SOBJECT://ContentDocument</definition>
+            <masterLabel>CV</masterLabel>
+            <referenceName>Input:CV</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>
