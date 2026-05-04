@@ -1,7 +1,6 @@
-import { LightningElement, track, wire } from "lwc";
-import { NavigationMixin } from "lightning/navigation";
-import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import getJobPositions from "@salesforce/apex/JobPositionController.getJobPositions";
+import { LightningElement, track, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getJobPositions from '@salesforce/apex/JobPositionController.getJobPositions';
 
 export default class TfJobPositions extends NavigationMixin(LightningElement) {
   @track searchTerm = "";
