@@ -67,7 +67,13 @@ public without sharing class CandidatePortalRegistrationController {
     ensureNoExistingUser(normalizedEmail);
     ensureNoExistingCandidate(normalizedEmail, normalizedPhone);
 
-    Profile externalIdentityProfile = getExternalIdentityProfile();
+        Profile externalIdentityProfile = getExternalIdentityProfile();
+
+        if (!Schema.sObjectType.User.isCreateable()) {
+            throw new AuraHandledException(
+                'User creation is not allowed for the current context. Please contact an administrator.'
+            );
+        }
 
     User newUser = new User(
       FirstName = firstName.trim(),
@@ -84,11 +90,7 @@ public without sharing class CandidatePortalRegistrationController {
       IsActive = true
     );
 
-    /*
-     * User creation for guest self-registration must run in system context.
-     * The guest user cannot create User records with USER_MODE.
-     */
-    insert newUser;
+        insert newUser;
 
     System.setPassword(newUser.Id, password);
 
@@ -112,22 +114,30 @@ public without sharing class CandidatePortalRegistrationController {
     return result;
   }
 
-  /**
-   * @description Validates the registration form input before user creation.
-   */
-  private static void validateInput(
-    String firstName,
-    String lastName,
-    String email,
-    String phone,
-    String educationLevel,
-    Decimal yearsOfExperience,
-    String password,
-    String confirmPassword
-  ) {
-    if (String.isBlank(firstName)) {
-      throw new AuraHandledException('First name is required.');
-    }
+    /**
+     * @description Validates the registration form input before user creation.
+     * @param firstName Candidate first name.
+     * @param lastName Candidate last name.
+     * @param email Candidate email.
+     * @param phone Candidate phone number.
+     * @param educationLevel Candidate education level.
+     * @param yearsOfExperience Candidate years of experience.
+     * @param password Candidate password.
+     * @param confirmPassword Candidate password confirmation.
+     */
+    private static void validateInput(
+        String firstName,
+        String lastName,
+        String email,
+        String phone,
+        String educationLevel,
+        Decimal yearsOfExperience,
+        String password,
+        String confirmPassword
+    ) {
+        if (String.isBlank(firstName)) {
+            throw new AuraHandledException('First name is required.');
+        }
 
     if (String.isBlank(lastName)) {
       throw new AuraHandledException('Last name is required.');
@@ -170,19 +180,24 @@ public without sharing class CandidatePortalRegistrationController {
     }
   }
 
-  /**
-   * @description Returns the External Identity profile used to create candidate portal users.
-   * @return External Identity profile.
-   */
-  private static Profile getExternalIdentityProfile() {
-    List<Profile> profiles = [
-      SELECT Id
-      FROM Profile
-      WHERE
-        Name = :EXTERNAL_IDENTITY_PROFILE_NAME
-        AND UserLicense.Name = :EXTERNAL_IDENTITY_LICENSE_NAME
-      LIMIT 1
-    ];
+    /**
+     * @description Returns the External Identity profile used to create candidate portal users.
+     * @return External Identity profile.
+     */
+    private static Profile getExternalIdentityProfile() {
+        if (!Schema.sObjectType.Profile.isAccessible()) {
+            throw new AuraHandledException(
+                'Profile access is not allowed for the current context. Please contact an administrator.'
+            );
+        }
+
+        List<Profile> profiles = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = :EXTERNAL_IDENTITY_PROFILE_NAME
+            AND UserLicense.Name = :EXTERNAL_IDENTITY_LICENSE_NAME
+            LIMIT 1
+        ];
 
     if (profiles.isEmpty()) {
       throw new AuraHandledException(
@@ -193,17 +208,23 @@ public without sharing class CandidatePortalRegistrationController {
     return profiles[0];
   }
 
-  /**
-   * @description Ensures no Salesforce user already exists with the same username/email.
-   * @param normalizedEmail Lowercase trimmed email.
-   */
-  private static void ensureNoExistingUser(String normalizedEmail) {
-    List<User> existingUsers = [
-      SELECT Id
-      FROM User
-      WHERE Username = :normalizedEmail
-      LIMIT 1
-    ];
+    /**
+     * @description Ensures no Salesforce user already exists with the same username/email.
+     * @param normalizedEmail Lowercase trimmed email.
+     */
+    private static void ensureNoExistingUser(String normalizedEmail) {
+        if (!Schema.sObjectType.User.isAccessible()) {
+            throw new AuraHandledException(
+                'User lookup is not allowed for the current context. Please contact an administrator.'
+            );
+        }
+
+        List<User> existingUsers = [
+            SELECT Id
+            FROM User
+            WHERE Username = :normalizedEmail
+            LIMIT 1
+        ];
 
     if (!existingUsers.isEmpty()) {
       throw new AuraHandledException(
@@ -212,22 +233,24 @@ public without sharing class CandidatePortalRegistrationController {
     }
   }
 
-  /**
-   * @description Ensures no Candidate__c already exists with the same email or phone.
-   * @param normalizedEmail Lowercase trimmed email.
-   * @param normalizedPhone Trimmed phone number.
-   */
-  private static void ensureNoExistingCandidate(
-    String normalizedEmail,
-    String normalizedPhone
-  ) {
-    List<Candidate__c> existingCandidates = [
-      SELECT Id
-      FROM Candidate__c
-      WHERE Email__c = :normalizedEmail OR Phone__c = :normalizedPhone
-      WITH USER_MODE
-      LIMIT 1
-    ];
+    /**
+     * @description Ensures no Candidate__c already exists with the same email or phone.
+     * @param normalizedEmail Lowercase trimmed email.
+     * @param normalizedPhone Trimmed phone number.
+     */
+    private static void ensureNoExistingCandidate(String normalizedEmail, String normalizedPhone) {
+        if (!Schema.sObjectType.Candidate__c.isAccessible()) {
+            throw new AuraHandledException(
+                'Candidate lookup is not allowed for the current context. Please contact an administrator.'
+            );
+        }
+
+        List<Candidate__c> existingCandidates = [
+            SELECT Id
+            FROM Candidate__c
+            WHERE Email__c = :normalizedEmail OR Phone__c = :normalizedPhone
+            LIMIT 1
+        ];
 
     if (!existingCandidates.isEmpty()) {
       throw new AuraHandledException(
@@ -287,62 +310,69 @@ public without sharing class CandidatePortalRegistrationController {
     return nickname;
   }
 
-  /**
-   * @description Queueable job that creates the Candidate__c profile after the portal user is created.
-   * The insert intentionally runs in system context because candidate creation is part of the
-   * controlled self-registration process initiated by a guest user.
-   */
-  private class CandidateCreationJob implements Queueable {
-    private Id userId;
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phone;
-    private String educationLevel;
-    private Decimal yearsOfExperience;
-
     /**
-     * @description Creates a job carrying candidate profile data.
+     * @description Queueable job that creates the Candidate__c profile after the portal user is created.
      */
-    CandidateCreationJob(
-      Id userId,
-      String firstName,
-      String lastName,
-      String email,
-      String phone,
-      String educationLevel,
-      Decimal yearsOfExperience
-    ) {
-      this.userId = userId;
-      this.firstName = firstName;
-      this.lastName = lastName;
-      this.email = email;
-      this.phone = phone;
-      this.educationLevel = educationLevel;
-      this.yearsOfExperience = yearsOfExperience;
-    }
+    private class CandidateCreationJob implements Queueable {
+        private Id userId;
+        private String firstName;
+        private String lastName;
+        private String email;
+        private String phone;
+        private String educationLevel;
+        private Decimal yearsOfExperience;
 
-    /**
-     * @description Creates the Candidate__c record linked to the newly created portal user.
-     * @param context Queueable execution context.
-     */
-    public void execute(QueueableContext context) {
-      Candidate__c candidate = new Candidate__c(
-        FirstName__c = firstName,
-        LastName__c = lastName,
-        Email__c = email,
-        Phone__c = phone,
-        Education_Level__c = educationLevel,
-        Years_of_Experience__c = yearsOfExperience,
-        Journey_Status__c = 'Active',
-        User__c = userId
-      );
+        /**
+         * @description Creates a job carrying candidate profile data.
+         * @param userId Created portal user id.
+         * @param firstName Candidate first name.
+         * @param lastName Candidate last name.
+         * @param email Candidate email.
+         * @param phone Candidate phone number.
+         * @param educationLevel Candidate education level.
+         * @param yearsOfExperience Candidate years of experience.
+         */
+        CandidateCreationJob(
+            Id userId,
+            String firstName,
+            String lastName,
+            String email,
+            String phone,
+            String educationLevel,
+            Decimal yearsOfExperience
+        ) {
+            this.userId = userId;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.phone = phone;
+            this.educationLevel = educationLevel;
+            this.yearsOfExperience = yearsOfExperience;
+        }
 
-      /*
-       * Candidate creation is intentionally performed in system context because this
-       * queueable is part of the controlled guest self-registration flow.
-       */
-      insert candidate;
+        /**
+         * @description Creates the Candidate__c record linked to the newly created portal user.
+         * @param context Queueable execution context.
+         */
+        public void execute(QueueableContext context) {
+            if (!Schema.sObjectType.Candidate__c.isCreateable()) {
+                throw new AuraHandledException(
+                    'Candidate creation is not allowed for the current context. Please contact an administrator.'
+                );
+            }
+
+            Candidate__c candidate = new Candidate__c(
+                FirstName__c = firstName,
+                LastName__c = lastName,
+                Email__c = email,
+                Phone__c = phone,
+                Education_Level__c = educationLevel,
+                Years_of_Experience__c = yearsOfExperience,
+                Journey_Status__c = 'Active',
+                User__c = userId
+            );
+
+            insert candidate;
+        }
     }
-  }
 }
