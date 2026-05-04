@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Application_Type__c</fullName>
     <label>Application Type</label>
@@ -10,9 +10,9 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Direct</fullName>
+                <fullName>Spontaneous</fullName>
                 <default>false</default>
-                <label>Direct</label>
+                <label>Spontaneous</label>
             </value>
             <value>
                 <fullName>Referral</fullName>

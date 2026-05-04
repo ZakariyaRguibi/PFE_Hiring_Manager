@@ -210,10 +210,9 @@ public without sharing class CandidatePortalRegistrationController {
         List<Candidate__c> existingCandidates = [
             SELECT Id
             FROM Candidate__c
-            WHERE Email__c = :normalizedEmail
-            OR Phone__c = :normalizedPhone
-            LIMIT 1
+            WHERE Email__c = :normalizedEmail OR Phone__c = :normalizedPhone
             WITH USER_MODE
+            LIMIT 1
         ];
 
         if (!existingCandidates.isEmpty()) {
@@ -322,6 +321,10 @@ public without sharing class CandidatePortalRegistrationController {
                 User__c = userId
             );
 
+            /*
+             * Candidate creation is intentionally performed in system context because this
+             * queueable is part of the controlled guest self-registration flow.
+             */
             insert candidate;
         }
     }
