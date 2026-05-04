@@ -1,58 +1,47 @@
-public without sharing class CandidatePortalProfileController {
-  public class CandidateProfileDTO {
-    @AuraEnabled
-    public Id candidateId;
-    @AuraEnabled
-    public String firstName;
-    @AuraEnabled
-    public String lastName;
-    @AuraEnabled
-    public String email;
-    @AuraEnabled
-    public String phone;
-    @AuraEnabled
-    public String educationLevel;
-    @AuraEnabled
-    public Decimal yearsOfExperience;
-  }
-
-  @AuraEnabled(cacheable=true)
-  public static CandidateProfileDTO getCurrentCandidateProfile() {
-    Id currentUserId = UserInfo.getUserId();
-
-    List<Candidate__c> candidates = [
-      SELECT
-        Id,
-        FirstName__c,
-        LastName__c,
-        Email__c,
-        Phone__c,
-        Education_Level__c,
-        Years_of_Experience__c,
-        User__c
-      FROM Candidate__c
-      WHERE User__c = :currentUserId
-      LIMIT 1
-    ];
-
-    if (candidates.isEmpty()) {
-      throw new AuraHandledException(
-        'No candidate profile is linked to the current user. Current User Id: ' +
-        currentUserId
-      );
+/**
+ * @description Controller used by the TalentForce Candidate Portal to expose public job positions.
+ * It returns only job positions that are open and whose application deadline has not expired.
+ */
+public with sharing class CandidatePortalJobController {
+    /**
+     * @description Data transfer object representing a public job position displayed on the candidate portal.
+     */
+    public class JobPositionDTO {
+        @AuraEnabled public Id recordId;
+        @AuraEnabled public String title;
+        @AuraEnabled public Date applicationDeadline;
+        @AuraEnabled public String portalDescription;
     }
 
-    Candidate__c candidate = candidates[0];
+    /**
+     * @description Returns open and non-expired job positions visible to candidate portal users.
+     * @return List of public job position DTOs.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<JobPositionDTO> getOpenJobs() {
+        List<Job_Position__c> jobPositions = [
+            SELECT Id,
+                   Title__c,
+                   Application_Deadline__c,
+                   Portal_Description__c
+            FROM Job_Position__c
+            WHERE Status__c = 'Open'
+            AND Application_Deadline__c >= TODAY
+            WITH USER_MODE
+            ORDER BY Application_Deadline__c ASC
+        ];
 
-    CandidateProfileDTO dto = new CandidateProfileDTO();
-    dto.candidateId = candidate.Id;
-    dto.firstName = candidate.FirstName__c;
-    dto.lastName = candidate.LastName__c;
-    dto.email = candidate.Email__c;
-    dto.phone = candidate.Phone__c;
-    dto.educationLevel = candidate.Education_Level__c;
-    dto.yearsOfExperience = candidate.Years_of_Experience__c;
+        List<JobPositionDTO> jobs = new List<JobPositionDTO>();
 
-    return dto;
-  }
+        for (Job_Position__c jobPosition : jobPositions) {
+            JobPositionDTO dto = new JobPositionDTO();
+            dto.recordId = jobPosition.Id;
+            dto.title = jobPosition.Title__c;
+            dto.applicationDeadline = jobPosition.Application_Deadline__c;
+            dto.portalDescription = jobPosition.Portal_Description__c;
+            jobs.add(dto);
+        }
+
+        return jobs;
+    }
 }
