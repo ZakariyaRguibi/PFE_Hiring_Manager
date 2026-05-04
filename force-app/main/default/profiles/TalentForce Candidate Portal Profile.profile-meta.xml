@@ -676,9 +676,6 @@
         <tab>Job_Position__c</tab>
         <visibility>Hidden</visibility>
     </tabVisibilities>
-    <tabVisibilities>
-        <tab>Job_Positions</tab>
-        <visibility>Hidden</visibility>
-    </tabVisibilities>
+    
     <userLicense>Guest User License</userLicense>
 </Profile>
