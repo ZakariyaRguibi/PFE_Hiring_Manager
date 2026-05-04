@@ -83,7 +83,6 @@ export default class CandidateJobList extends LightningElement {
       return;
     }
 
-    
     this.isJobDetailsModalOpen = false;
     this.isApplicationModalOpen = true;
   }

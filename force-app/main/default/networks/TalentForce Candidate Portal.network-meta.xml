@@ -1,10 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Network xmlns="http://soap.sforce.com/2006/04/metadata">
     <allowInternalUserLogin>false</allowInternalUserLogin>
     <allowMembersToFlag>false</allowMembersToFlag>
-    <changePasswordTemplate>unfiled$public/CommunityChangePasswordEmailTemplate</changePasswordTemplate>
-    <communityRoles/>
-    <disableReputationRecordConversations>true</disableReputationRecordConversations>
+    <changePasswordTemplate
+  >unfiled$public/CommunityChangePasswordEmailTemplate</changePasswordTemplate>
+    <communityRoles />
+    <disableReputationRecordConversations
+  >true</disableReputationRecordConversations>
     <emailSenderAddress>hiba.balhirch@gmail.com</emailSenderAddress>
     <emailSenderName>TalentForce Candidate Portal</emailSenderName>
     <embeddedLoginEnabled>false</embeddedLoginEnabled>
@@ -12,7 +14,8 @@
     <enableCustomVFErrorPageOverrides>false</enableCustomVFErrorPageOverrides>
     <enableDirectMessages>true</enableDirectMessages>
     <enableExpFriendlyUrlsAsDefault>false</enableExpFriendlyUrlsAsDefault>
-    <enableExperienceBundleBasedSnaOverrideEnabled>true</enableExperienceBundleBasedSnaOverrideEnabled>
+    <enableExperienceBundleBasedSnaOverrideEnabled
+  >true</enableExperienceBundleBasedSnaOverrideEnabled>
     <enableGuestChatter>false</enableGuestChatter>
     <enableGuestFileAccess>true</enableGuestFileAccess>
     <enableGuestMemberVisibility>false</enableGuestMemberVisibility>
@@ -30,20 +33,26 @@
     <enableTopicAssignmentRules>true</enableTopicAssignmentRules>
     <enableTopicSuggestions>false</enableTopicSuggestions>
     <enableUpDownVote>false</enableUpDownVote>
-    <forgotPasswordTemplate>unfiled$public/CommunityForgotPasswordEmailTemplate</forgotPasswordTemplate>
+    <forgotPasswordTemplate
+  >unfiled$public/CommunityForgotPasswordEmailTemplate</forgotPasswordTemplate>
     <gatherCustomerSentimentData>false</gatherCustomerSentimentData>
-    <headlessForgotPasswordTemplate>unfiled$public/CommunityHeadlessForgotPasswordTemplate</headlessForgotPasswordTemplate>
-    <headlessRegistrationTemplate>unfiled$public/CommunityHeadlessRegistrationTemplate</headlessRegistrationTemplate>
+    <headlessForgotPasswordTemplate
+  >unfiled$public/CommunityHeadlessForgotPasswordTemplate</headlessForgotPasswordTemplate>
+    <headlessRegistrationTemplate
+  >unfiled$public/CommunityHeadlessRegistrationTemplate</headlessRegistrationTemplate>
     <networkMemberGroups>
         <profile>admin</profile>
         <profile>external identity user</profile>
     </networkMemberGroups>
     <networkPageOverrides>
-        <changePasswordPageOverrideSetting>Standard</changePasswordPageOverrideSetting>
-        <forgotPasswordPageOverrideSetting>Designer</forgotPasswordPageOverrideSetting>
+        <changePasswordPageOverrideSetting
+    >Standard</changePasswordPageOverrideSetting>
+        <forgotPasswordPageOverrideSetting
+    >Designer</forgotPasswordPageOverrideSetting>
         <homePageOverrideSetting>Designer</homePageOverrideSetting>
         <loginPageOverrideSetting>Designer</loginPageOverrideSetting>
-        <selfRegProfilePageOverrideSetting>Designer</selfRegProfilePageOverrideSetting>
+        <selfRegProfilePageOverrideSetting
+    >Designer</selfRegProfilePageOverrideSetting>
     </networkPageOverrides>
     <picassoSite>TalentForce_Candidate_Portal1</picassoSite>
     <selfRegistration>false</selfRegistration>
@@ -56,5 +65,6 @@
         <standardTab>Chatter</standardTab>
     </tabs>
     <urlPathPrefix>talentforcevforcesite</urlPathPrefix>
-    <welcomeTemplate>unfiled$public/CommunityWelcomeEmailTemplate</welcomeTemplate>
+    <welcomeTemplate
+  >unfiled$public/CommunityWelcomeEmailTemplate</welcomeTemplate>
 </Network>
