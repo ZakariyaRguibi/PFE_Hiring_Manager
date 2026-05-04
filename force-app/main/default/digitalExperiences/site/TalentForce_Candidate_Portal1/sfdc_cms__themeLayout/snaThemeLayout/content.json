@@ -1,24 +1,27 @@
 {
-  "type" : "sfdc_cms__themeLayout",
-  "title" : "Service Not Available Theme Layout",
-  "contentBody" : {
-    "component" : {
-      "attributes" : { },
-      "children" : [ {
-        "id" : "8893f3c0-fa86-4c1d-8bca-8a5ad85cfed6",
-        "name" : "header",
-        "title" : "Theme Header",
-        "type" : "region"
-      }, {
-        "id" : "4393813f-90ce-45a7-b397-8ce68e3a1cce",
-        "name" : "footer",
-        "title" : "Theme Footer",
-        "type" : "region"
-      } ],
-      "definition" : "community_layout:simpleThemeLayout",
-      "id" : "60e57d0f-3fd9-47e7-a4a8-a19e27449647",
-      "type" : "component"
+  "type": "sfdc_cms__themeLayout",
+  "title": "Service Not Available Theme Layout",
+  "contentBody": {
+    "component": {
+      "attributes": {},
+      "children": [
+        {
+          "id": "8893f3c0-fa86-4c1d-8bca-8a5ad85cfed6",
+          "name": "header",
+          "title": "Theme Header",
+          "type": "region"
+        },
+        {
+          "id": "4393813f-90ce-45a7-b397-8ce68e3a1cce",
+          "name": "footer",
+          "title": "Theme Footer",
+          "type": "region"
+        }
+      ],
+      "definition": "community_layout:simpleThemeLayout",
+      "id": "60e57d0f-3fd9-47e7-a4a8-a19e27449647",
+      "type": "component"
     }
   },
-  "urlName" : "service-not-available-theme-layout"
+  "urlName": "service-not-available-theme-layout"
 }
