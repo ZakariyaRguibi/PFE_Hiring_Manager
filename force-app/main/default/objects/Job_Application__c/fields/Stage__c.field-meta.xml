@@ -15,11 +15,6 @@
                 <label>New</label>
             </value>
             <value>
-                <fullName>Screening</fullName>
-                <default>false</default>
-                <label>Screening</label>
-            </value>
-            <value>
                 <fullName>Interview</fullName>
                 <default>false</default>
                 <label>Interview</label>
@@ -38,6 +33,11 @@
                 <fullName>Rejected</fullName>
                 <default>false</default>
                 <label>Rejected</label>
+            </value>
+            <value>
+                <fullName>Withdrawn</fullName>
+                <default>false</default>
+                <label>Withdrawn</label>
             </value>
         </valueSetDefinition>
     </valueSet>
