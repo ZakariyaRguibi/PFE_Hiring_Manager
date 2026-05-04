@@ -1,0 +1,90 @@
+<template>
+    <section class="registration-card">
+        <div class="header">
+            <p class="eyebrow">TalentForce</p>
+            <h1>Create your candidate account</h1>
+            <p class="subtitle">
+                Create your account to apply for jobs, track your applications, and manage interviews.
+            </p>
+        </div>
+
+        <template if:true={successMessage}>
+            <div class="success-message">
+                <strong>Success.</strong> {successMessage}
+                <div class="actions">
+                    <button class="primary-button" onclick={goToLogin}>
+                        Go to login
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={errorMessage}>
+            <div class="error-message">
+                {errorMessage}
+            </div>
+        </template>
+
+        <template if:false={successMessage}>
+            <div class="form-grid">
+                <label>
+                    First Name
+                    <input type="text" data-field="firstName" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Last Name
+                    <input type="text" data-field="lastName" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Email
+                    <input type="email" data-field="email" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Phone
+                    <input type="tel" data-field="phone" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Education Level
+                    <select data-field="educationLevel" onchange={handleChange}>
+                        <option value="">Select education level</option>
+                        <option value="High School">High School</option>
+                        <option value="Bachelor">Bachelor</option>
+                        <option value="Master">Master</option>
+                        <option value="PhD">PhD</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label>
+
+                <label>
+                    Years of Experience
+                    <input type="number" min="0" step="1" data-field="yearsOfExperience" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Password
+                    <input type="password" data-field="password" onchange={handleChange} />
+                </label>
+
+                <label>
+                    Confirm Password
+                    <input type="password" data-field="confirmPassword" onchange={handleChange} />
+                </label>
+            </div>
+
+            <div class="actions">
+                <button class="primary-button" onclick={handleRegister} disabled={isLoading}>
+                    <template if:true={isLoading}>Creating account...</template>
+                    <template if:false={isLoading}>Create account</template>
+                </button>
+
+                <button class="secondary-button" onclick={goToLogin}>
+                    Already have an account? Log in
+                </button>
+            </div>
+        </template>
+    </section>
+</template>
