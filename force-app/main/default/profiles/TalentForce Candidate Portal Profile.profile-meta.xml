@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>TalentForce_Recruitment_Console</application>
@@ -616,7 +616,8 @@
         <layout>Candidate__c-Candidate Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
-        <layout>Interview_Stage_Team_Member__c-Interview Stage Team Member Layout</layout>
+        <layout
+    >Interview_Stage_Team_Member__c-Interview Stage Team Member Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
         <layout>Interview_Stage__c-Interview Stage Layout</layout>
