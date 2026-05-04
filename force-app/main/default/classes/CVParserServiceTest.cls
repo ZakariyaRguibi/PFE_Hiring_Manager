@@ -37,17 +37,38 @@ private class CVParserServiceTest {
    */
   @IsTest
   static void parseResponseMapsAllFields() {
-    String json = buildJson('Apex, LWC, SOQL', 'Salesforce, CRM, cloud', 'Master', 3);
+    String json = buildJson(
+      'Apex, LWC, SOQL',
+      'Salesforce, CRM, cloud',
+      'Master',
+      3
+    );
 
     Test.startTest();
     CVParserService.CVParseResult result = CVParserService.parseResponse(json);
     Test.stopTest();
 
-    System.assertEquals('Apex, LWC, SOQL', result.extractedSkills, 'Skills mismatch');
-    System.assertEquals('Salesforce, CRM, cloud', result.extractedKeywords, 'Keywords mismatch');
-    System.assertEquals('Master', result.extractedEducation, 'Education mismatch');
+    System.assertEquals(
+      'Apex, LWC, SOQL',
+      result.extractedSkills,
+      'Skills mismatch'
+    );
+    System.assertEquals(
+      'Salesforce, CRM, cloud',
+      result.extractedKeywords,
+      'Keywords mismatch'
+    );
+    System.assertEquals(
+      'Master',
+      result.extractedEducation,
+      'Education mismatch'
+    );
     System.assertEquals(3, result.extractedExperience, 'Experience mismatch');
-    System.assertEquals(CVParserService.PARSER_VERSION, result.parserVersion, 'Version mismatch');
+    System.assertEquals(
+      CVParserService.PARSER_VERSION,
+      result.parserVersion,
+      'Version mismatch'
+    );
     System.assertEquals(true, result.success, 'Success flag should be true');
     System.assertNotEquals(null, result.parsedAt, 'parsedAt should be set');
   }
@@ -64,10 +85,26 @@ private class CVParserServiceTest {
     Test.stopTest();
 
     System.assertEquals(null, result.extractedSkills, 'Skills should be null');
-    System.assertEquals(null, result.extractedKeywords, 'Keywords should be null');
-    System.assertEquals(null, result.extractedEducation, 'Education should be null');
-    System.assertEquals(null, result.extractedExperience, 'Experience should be null');
-    System.assertEquals(true, result.success, 'Success flag should still be true');
+    System.assertEquals(
+      null,
+      result.extractedKeywords,
+      'Keywords should be null'
+    );
+    System.assertEquals(
+      null,
+      result.extractedEducation,
+      'Education should be null'
+    );
+    System.assertEquals(
+      null,
+      result.extractedExperience,
+      'Experience should be null'
+    );
+    System.assertEquals(
+      true,
+      result.success,
+      'Success flag should still be true'
+    );
   }
 
   /**
@@ -81,7 +118,11 @@ private class CVParserServiceTest {
     CVParserService.CVParseResult result = CVParserService.parseResponse(json);
     Test.stopTest();
 
-    System.assertEquals(5, result.extractedExperience, 'Experience should be integer 5');
+    System.assertEquals(
+      5,
+      result.extractedExperience,
+      'Experience should be integer 5'
+    );
   }
 
   /**
@@ -111,7 +152,10 @@ private class CVParserServiceTest {
     } catch (AuraHandledException e) {
       // AuraHandledException.getMessage() returns 'Script-thrown exception' at runtime,
       // not the actual message — asserting the correct exception type is sufficient.
-      System.assert(true, 'AuraHandledException correctly thrown for null contentDocumentId');
+      System.assert(
+        true,
+        'AuraHandledException correctly thrown for null contentDocumentId'
+      );
     }
     Test.stopTest();
   }
@@ -127,8 +171,16 @@ private class CVParserServiceTest {
     CVParserService.CVParseResult result = CVParserService.parseResponse(json);
     Test.stopTest();
 
-    System.assertEquals('', result.extractedSkills, 'Empty skills should be stored as empty string');
-    System.assertEquals(0, result.extractedExperience, 'Zero experience should be stored as 0');
+    System.assertEquals(
+      '',
+      result.extractedSkills,
+      'Empty skills should be stored as empty string'
+    );
+    System.assertEquals(
+      0,
+      result.extractedExperience,
+      'Zero experience should be stored as 0'
+    );
   }
 
   /**
@@ -142,6 +194,10 @@ private class CVParserServiceTest {
     CVParserService.CVParseResult result = CVParserService.parseResponse(json);
     Test.stopTest();
 
-    System.assertNotEquals(null, result.parserVersion, 'Parser version should always be populated');
+    System.assertNotEquals(
+      null,
+      result.parserVersion,
+      'Parser version should always be populated'
+    );
   }
 }
