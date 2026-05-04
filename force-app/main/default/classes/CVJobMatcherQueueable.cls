@@ -117,7 +117,9 @@ public with sharing class CVJobMatcherQueueable implements Queueable, Database.A
    */
   @TestVisible
   static Job_Application__c buildUpdate(Id appId, String rawJson) {
-    Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(rawJson);
+    Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(
+      rawJson
+    );
 
     Decimal skillsScore = toDecimal(parsed.get('Skills_Match_Score'));
     Decimal educationScore = toDecimal(parsed.get('Education_Score'));
@@ -139,7 +141,9 @@ public with sharing class CVJobMatcherQueueable implements Queueable, Database.A
     scored.AI_Scored_At__c = Datetime.now();
     scored.Passed_Hard_Filter__c = parsed.get('Passed_Hard_Filter') == true;
     scored.AI_Filter_Decision__c = (String) parsed.get('AI_Filter_Decision');
-    scored.Filter_Rejection_Reason__c = (String) parsed.get('Filter_Rejection_Reason');
+    scored.Filter_Rejection_Reason__c = (String) parsed.get(
+      'Filter_Rejection_Reason'
+    );
     return scored;
   }
 
