@@ -1,12 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</activeVersionIdentifier>
-    <description>Evaluate how well a candidate matches a job position</description>
+    <activeVersionIdentifier
+  >O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</activeVersionIdentifier>
+    <description
+  >Evaluate how well a candidate matches a job position</description>
     <developerName>CV_Job_Matcher</developerName>
     <masterLabel>CV Job Matcher</masterLabel>
     <overridable>false</overridable>
     <templateVersions>
-        <content>You are an expert HR screening system. Your job is to evaluate how well a candidate matches a job position and return a precise, justified scoring.
+        <content
+    >You are an expert HR screening system. Your job is to evaluate how well a candidate matches a job position and return a precise, justified scoring.
 
 ## Candidate Profile
 - Skills: {!$Input:Application.Extracted_Skills__c}
@@ -76,7 +79,8 @@ Return ONLY a valid JSON object, no explanation, no markdown, no code blocks:
  &quot;Filter_Rejection_Reason&quot;: &quot;&lt;null if approved, reason if rejected&gt;&quot;
 }
 </content>
-        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <fileDroppingStrategy
+    >{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
         <inputs>
             <apiName>Application</apiName>
             <definition>SOBJECT://Job_Application__c</definition>
@@ -94,7 +98,8 @@ Return ONLY a valid JSON object, no explanation, no markdown, no code blocks:
         <isCitationEnabled>false</isCitationEnabled>
         <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
         <status>Published</status>
-        <versionIdentifier>O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</versionIdentifier>
+        <versionIdentifier
+    >O3bsH/jvTq6UT0KxNMoEc2EM36PRPPU5+xdeoqHGEuY=_1</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

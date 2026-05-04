@@ -435,6 +435,9 @@ private class CVJobMatcherQueueableTest {
     System.enqueueJob(new CVJobMatcherQueueable(deletedId));
     Test.stopTest();
 
-    System.assert(true, 'Should complete without throwing for deleted application Id');
+    System.assert(
+      true,
+      'Should complete without throwing for deleted application Id'
+    );
   }
 }
