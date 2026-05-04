@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
@@ -19,7 +19,8 @@
             <assignToReference>totalStageWeight</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>Loop_Interview_Stages.Stage_Weight__c</elementReference>
+                <elementReference
+        >Loop_Interview_Stages.Stage_Weight__c</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -110,7 +111,8 @@
         <defaultConnector>
             <targetReference>Screen_Publish_Error</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Invalid Publish Configuration</defaultConnectorLabel>
+        <defaultConnectorLabel
+    >Invalid Publish Configuration</defaultConnectorLabel>
 
         <rules>
             <name>Publishing_Configuration_Is_Valid</name>
@@ -133,7 +135,8 @@
             </conditions>
 
             <conditions>
-                <leftValueReference>jobPosition.Portal_Description__c</leftValueReference>
+                <leftValueReference
+        >jobPosition.Portal_Description__c</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
@@ -141,7 +144,8 @@
             </conditions>
 
             <conditions>
-                <leftValueReference>jobPosition.Application_Deadline__c</leftValueReference>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
@@ -149,7 +153,8 @@
             </conditions>
 
             <conditions>
-                <leftValueReference>jobPosition.Application_Deadline__c</leftValueReference>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
                 <operator>GreaterThanOrEqualTo</operator>
                 <rightValue>
                     <elementReference>$Flow.CurrentDate</elementReference>
@@ -274,7 +279,8 @@
             <name>Current_Deadline_Still_Valid</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>jobPosition.Application_Deadline__c</leftValueReference>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
                 <operator>GreaterThanOrEqualTo</operator>
                 <rightValue>
                     <elementReference>$Flow.CurrentDate</elementReference>
@@ -301,7 +307,8 @@
             <name>New_Deadline_Is_Valid</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>New_Application_Deadline</leftValueReference>
+                <leftValueReference
+        >New_Application_Deadline</leftValueReference>
                 <operator>GreaterThanOrEqualTo</operator>
                 <rightValue>
                     <elementReference>$Flow.CurrentDate</elementReference>
@@ -314,8 +321,10 @@
         </rules>
     </decisions>
 
-    <description>One screen flow launched from Job Position buttons. It handles Publish, Close, Cancel, and Reopen using the actionType input parameter.</description>
-    <interviewLabel>Change Job Position Status {!$Flow.CurrentDateTime}</interviewLabel>
+    <description
+  >One screen flow launched from Job Position buttons. It handles Publish, Close, Cancel, and Reopen using the actionType input parameter.</description>
+    <interviewLabel
+  >Change Job Position Status {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Change Job Position Status</label>
 
     <loops>
@@ -354,7 +363,8 @@
         <label>Get Job Position</label>
         <locationX>620</locationX>
         <locationY>120</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound
+    >false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Check_Requested_Action</targetReference>
         </connector>
@@ -380,7 +390,8 @@
         <label>Get Interview Stages</label>
         <locationX>620</locationX>
         <locationY>560</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound
+    >false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Loop_Interview_Stages</targetReference>
         </connector>
@@ -534,7 +545,8 @@
         </connector>
         <fields>
             <name>Publish_Header</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Publish Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to publish &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The system will verify the title, portal description, application deadline, and stage weights before opening the offer.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to continue.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Publish Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to publish &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The system will verify the title, portal description, application deadline, and stage weights before opening the offer.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to continue.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -562,7 +574,8 @@
         </connector>
         <fields>
             <name>Close_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Close Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to close &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The offer will stop accepting new applications, but existing recruitment work can continue internally.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Close Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to close &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The offer will stop accepting new applications, but existing recruitment work can continue internally.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -590,7 +603,8 @@
         </connector>
         <fields>
             <name>Cancel_Warning</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Cancel Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Cancelling &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; will set the position to &lt;b&gt;Cancelled&lt;/b&gt; and cancel all related job applications.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Warning:&lt;/b&gt; This action should be used only when the recruitment is abandoned.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Cancel Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Cancelling &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; will set the position to &lt;b&gt;Cancelled&lt;/b&gt; and cancel all related job applications.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Warning:&lt;/b&gt; This action should be used only when the recruitment is abandoned.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -618,7 +632,8 @@
         </connector>
         <fields>
             <name>Reopen_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Reopen Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The current application deadline is still valid.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; and set its status back to &lt;b&gt;Open&lt;/b&gt;.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Reopen Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The current application deadline is still valid.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; and set its status back to &lt;b&gt;Open&lt;/b&gt;.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -646,7 +661,8 @@
         </connector>
         <fields>
             <name>Reopen_Expired_Deadline_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;The current application deadline has passed.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;To reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;, please choose a new application deadline.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;The current application deadline has passed.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;To reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;, please choose a new application deadline.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -686,7 +702,8 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Publish_Error_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Cannot publish this Job Position.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Please review the publishing configuration before opening the offer.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Status must be &lt;b&gt;Draft&lt;/b&gt;.&lt;/li&gt;&lt;li&gt;The title must be filled.&lt;/li&gt;&lt;li&gt;The portal description must be filled.&lt;/li&gt;&lt;li&gt;The application deadline must be today or a future date.&lt;/li&gt;&lt;li&gt;At least one interview stage must be configured.&lt;/li&gt;&lt;li&gt;The sum of all interview stage weights must equal 100%.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;b&gt;Current total stage weight:&lt;/b&gt; {!totalStageWeight}%&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Cannot publish this Job Position.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Please review the publishing configuration before opening the offer.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Status must be &lt;b&gt;Draft&lt;/b&gt;.&lt;/li&gt;&lt;li&gt;The title must be filled.&lt;/li&gt;&lt;li&gt;The portal description must be filled.&lt;/li&gt;&lt;li&gt;The application deadline must be today or a future date.&lt;/li&gt;&lt;li&gt;At least one interview stage must be configured.&lt;/li&gt;&lt;li&gt;The sum of all interview stage weights must equal 100%.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;b&gt;Current total stage weight:&lt;/b&gt; {!totalStageWeight}%&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -711,7 +728,8 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Reopen_Deadline_Error_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;Invalid deadline.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The new application deadline must be today or a future date. Please go back and choose a valid deadline.&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Invalid deadline.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The new application deadline must be today or a future date. Please go back and choose a valid deadline.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -736,7 +754,8 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Invalid_Action_Message</name>
-            <fieldText>&lt;p&gt;&lt;b&gt;This action is not available for the current status.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Current status: &lt;b&gt;{!jobPosition.Status__c}&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Requested action: &lt;b&gt;{!actionType}&lt;/b&gt;&lt;/p&gt;</fieldText>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;This action is not available for the current status.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Current status: &lt;b&gt;{!jobPosition.Status__c}&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Requested action: &lt;b&gt;{!actionType}&lt;/b&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
