@@ -18,14 +18,7 @@
         <apexClass>AvailabilitySlotTriggerTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
-    <classAccesses>
-        <apexClass>CVJobMatcherQueueable</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>CVJobMatcherQueueableTest</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
+    
     <classAccesses>
         <apexClass>CVParserService</apexClass>
         <enabled>false</enabled>
