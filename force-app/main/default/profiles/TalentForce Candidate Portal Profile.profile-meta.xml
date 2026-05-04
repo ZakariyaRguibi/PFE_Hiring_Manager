@@ -15,14 +15,7 @@
         <enabled>false</enabled>
     </classAccesses>
     
-    <classAccesses>
-        <apexClass>CVParserService</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>CVParserServiceTest</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
+    
     <classAccesses>
         <apexClass>CandidatePortalApplicationService</apexClass>
         <enabled>false</enabled>
