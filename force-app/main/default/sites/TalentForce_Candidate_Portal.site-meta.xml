@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CustomSite xmlns="http://soap.sforce.com/2006/04/metadata">
     <active>true</active>
     <allowGuestPaymentsApi>false</allowGuestPaymentsApi>
@@ -11,8 +11,7 @@
     <authorizationRequiredPage>CommunitiesLogin</authorizationRequiredPage>
     <bandwidthExceededPage>BandwidthExceeded</bandwidthExceededPage>
     <browserXssProtection>true</browserXssProtection>
-    <cachePublicVisualforcePagesInProxyServers
-  >true</cachePublicVisualforcePagesInProxyServers>
+    <cachePublicVisualforcePagesInProxyServers>true</cachePublicVisualforcePagesInProxyServers>
     <clickjackProtectionLevel>SameOriginOnly</clickjackProtectionLevel>
     <contentSniffingProtection>true</contentSniffingProtection>
     <enableAuraRequests>true</enableAuraRequests>
@@ -22,14 +21,11 @@
     <indexPage>CommunitiesLanding</indexPage>
     <masterLabel>TalentForce Candidate Portal</masterLabel>
     <redirectToCustomDomain>false</redirectToCustomDomain>
-    <referrerPolicyOriginWhenCrossOrigin
-  >true</referrerPolicyOriginWhenCrossOrigin>
+    <referrerPolicyOriginWhenCrossOrigin>true</referrerPolicyOriginWhenCrossOrigin>
     <selfRegPage>CommunitiesSelfReg</selfRegPage>
-    <serverIsDown
-  >SNA_0Gh5I_sf_default_cdn_TalentForce_Candidate_Portal1</serverIsDown>
+    <serverIsDown>SNA_0Gh5I_sf_default_cdn_TalentForce_Candidate_Portal1</serverIsDown>
     <siteAdmin>hiba.balhirch.oreitalent@oreivaton.com</siteAdmin>
-    <siteGuestRecordDefaultOwner
-  >hiba.balhirch.oreitalent@oreivaton.com</siteGuestRecordDefaultOwner>
+    <siteGuestRecordDefaultOwner>hiba.balhirch.oreitalent@oreivaton.com</siteGuestRecordDefaultOwner>
     <siteType>ChatterNetwork</siteType>
     <urlPathPrefix>talentforcevforcesite</urlPathPrefix>
 </CustomSite>
