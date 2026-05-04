@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
     <flexiPageRegions>
         <itemInstances>
@@ -20,7 +20,8 @@
                             </visibilityRule>
                         </valueListItems>
                         <valueListItems>
-                            <value>CustomButton.Job_Position__c.Close_Position</value>
+                            <value
+              >CustomButton.Job_Position__c.Close_Position</value>
                             <visibilityRule>
                                 <criteria>
                                     <leftValue>{!Record.Status__c}</leftValue>
@@ -30,7 +31,8 @@
                             </visibilityRule>
                         </valueListItems>
                         <valueListItems>
-                            <value>CustomButton.Job_Position__c.Cancel_Position</value>
+                            <value
+              >CustomButton.Job_Position__c.Cancel_Position</value>
                             <visibilityRule>
                                 <criteria>
                                     <leftValue>{!Record.Status__c}</leftValue>
@@ -40,7 +42,8 @@
                             </visibilityRule>
                         </valueListItems>
                         <valueListItems>
-                            <value>CustomButton.Job_Position__c.Reopen_Position</value>
+                            <value
+              >CustomButton.Job_Position__c.Reopen_Position</value>
                             <visibilityRule>
                                 <criteria>
                                     <leftValue>{!Record.Status__c}</leftValue>
