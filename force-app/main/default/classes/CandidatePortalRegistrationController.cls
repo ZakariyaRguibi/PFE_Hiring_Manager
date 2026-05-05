@@ -288,9 +288,7 @@ public without sharing class CandidatePortalRegistrationController {
     List<PermissionSetAssignment> existingAssignments = [
       SELECT Id
       FROM PermissionSetAssignment
-      WHERE
-        AssigneeId = :userId
-        AND PermissionSetId = :permissionSets[0].Id
+      WHERE AssigneeId = :userId AND PermissionSetId = :permissionSets[0].Id
       LIMIT 1
     ];
 
