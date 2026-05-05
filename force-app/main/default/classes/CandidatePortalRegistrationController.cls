@@ -1,7 +1,7 @@
 /**
  * @description Controller used by the TalentForce Candidate Portal self-registration form.
- * It creates an External Identity user account, sets the password chosen by the candidate,
- * and asynchronously creates the related Candidate__c profile.
+ * It creates an External Identity user account, assigns the TF_Candidate permission set,
+ * sets the password chosen by the candidate, and asynchronously creates the related Candidate__c profile.
  *
  * The class runs without sharing intentionally because guest users must be able to start
  * the registration process before they own any Salesforce records.
@@ -9,6 +9,7 @@
 public without sharing class CandidatePortalRegistrationController {
   private static final String EXTERNAL_IDENTITY_PROFILE_NAME = 'External Identity User';
   private static final String EXTERNAL_IDENTITY_LICENSE_NAME = 'External Identity';
+  private static final String CANDIDATE_PERMISSION_SET_NAME = 'TF_Candidate';
 
   /**
    * @description Result returned to the registration form after account creation.
@@ -91,6 +92,8 @@ public without sharing class CandidatePortalRegistrationController {
     );
 
     insert newUser;
+
+    assignCandidatePermissionSet(newUser.Id);
 
     System.setPassword(newUser.Id, password);
 
@@ -261,6 +264,46 @@ public without sharing class CandidatePortalRegistrationController {
         'A candidate profile already exists with this email or phone number.'
       );
     }
+  }
+
+  /**
+   * @description Assigns the TF_Candidate permission set to the newly created candidate portal user.
+   * @param userId Created candidate portal user id.
+   */
+  @SuppressWarnings('PMD.ApexCRUDViolation')
+  private static void assignCandidatePermissionSet(Id userId) {
+    List<PermissionSet> permissionSets = [
+      SELECT Id
+      FROM PermissionSet
+      WHERE Name = :CANDIDATE_PERMISSION_SET_NAME
+      LIMIT 1
+    ];
+
+    if (permissionSets.isEmpty()) {
+      throw new AuraHandledException(
+        'TF_Candidate permission set is not configured. Please contact an administrator.'
+      );
+    }
+
+    List<PermissionSetAssignment> existingAssignments = [
+      SELECT Id
+      FROM PermissionSetAssignment
+      WHERE
+        AssigneeId = :userId
+        AND PermissionSetId = :permissionSets[0].Id
+      LIMIT 1
+    ];
+
+    if (!existingAssignments.isEmpty()) {
+      return;
+    }
+
+    PermissionSetAssignment assignment = new PermissionSetAssignment(
+      AssigneeId = userId,
+      PermissionSetId = permissionSets[0].Id
+    );
+
+    insert assignment;
   }
 
   /**
