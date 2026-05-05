@@ -1,0 +1,831 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+
+    <assignments>
+        <name>Add_Interview_Stage_Weight</name>
+        <label>Add Interview Stage Weight</label>
+        <locationX>780</locationX>
+        <locationY>700</locationY>
+        <assignmentItems>
+            <assignToReference>stageCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1</numberValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>totalStageWeight</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference
+        >Loop_Interview_Stages.Stage_Weight__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Interview_Stages</targetReference>
+        </connector>
+    </assignments>
+
+    <decisions>
+        <name>Check_Requested_Action</name>
+        <label>Check Requested Action</label>
+        <locationX>620</locationX>
+        <locationY>260</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Invalid_Action</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Invalid Action</defaultConnectorLabel>
+
+        <rules>
+            <name>Action_Is_Publish</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>actionType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Publish</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Publish_Confirm</targetReference>
+            </connector>
+            <label>Publish</label>
+        </rules>
+
+        <rules>
+            <name>Action_Is_Close</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>actionType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Close</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Close_Allowed</targetReference>
+            </connector>
+            <label>Close</label>
+        </rules>
+
+        <rules>
+            <name>Action_Is_Cancel</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>actionType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Cancel</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Cancel_Confirm</targetReference>
+            </connector>
+            <label>Cancel</label>
+        </rules>
+
+        <rules>
+            <name>Action_Is_Reopen</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>actionType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Reopen</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Reopen_Allowed</targetReference>
+            </connector>
+            <label>Reopen</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_Publishing_Requirements</name>
+        <label>Check Publishing Requirements</label>
+        <locationX>620</locationX>
+        <locationY>900</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Publish_Error</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel
+    >Invalid Publish Configuration</defaultConnectorLabel>
+
+        <rules>
+            <name>Publishing_Configuration_Is_Valid</name>
+            <conditionLogic>and</conditionLogic>
+
+            <conditions>
+                <leftValueReference>jobPosition.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Draft</stringValue>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference>jobPosition.Title__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference
+        >jobPosition.Portal_Description__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference>stageCount</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0</numberValue>
+                </rightValue>
+            </conditions>
+
+            <conditions>
+                <leftValueReference>totalStageWeight</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <numberValue>100</numberValue>
+                </rightValue>
+            </conditions>
+
+            <connector>
+                <targetReference>Update_Status_Open</targetReference>
+            </connector>
+            <label>Valid Configuration</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_Close_Allowed</name>
+        <label>Check Close Allowed</label>
+        <locationX>120</locationX>
+        <locationY>420</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Invalid_Action</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Open</defaultConnectorLabel>
+
+        <rules>
+            <name>Close_Is_Allowed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>jobPosition.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Open</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Close_Confirm</targetReference>
+            </connector>
+            <label>Open</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_Cancel_Allowed</name>
+        <label>Check Cancel Allowed</label>
+        <locationX>360</locationX>
+        <locationY>620</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Invalid_Action</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Open</defaultConnectorLabel>
+
+        <rules>
+            <name>Cancel_Is_Allowed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>jobPosition.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Open</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Applications_Cancelled</targetReference>
+            </connector>
+            <label>Open</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_Reopen_Allowed</name>
+        <label>Check Reopen Allowed</label>
+        <locationX>1120</locationX>
+        <locationY>420</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Invalid_Action</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Closed</defaultConnectorLabel>
+
+        <rules>
+            <name>Reopen_Is_Allowed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>jobPosition.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Closed</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Reopen_Deadline</targetReference>
+            </connector>
+            <label>Closed</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_Reopen_Deadline</name>
+        <label>Check Reopen Deadline</label>
+        <locationX>1120</locationX>
+        <locationY>560</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Reopen_New_Deadline</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Deadline Expired</defaultConnectorLabel>
+
+        <rules>
+            <name>Current_Deadline_Still_Valid</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference
+        >jobPosition.Application_Deadline__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Reopen_Confirm</targetReference>
+            </connector>
+            <label>Deadline Valid</label>
+        </rules>
+    </decisions>
+
+    <decisions>
+        <name>Check_New_Reopen_Deadline</name>
+        <label>Check New Reopen Deadline</label>
+        <locationX>1120</locationX>
+        <locationY>860</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Reopen_Deadline_Error</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Invalid New Deadline</defaultConnectorLabel>
+
+        <rules>
+            <name>New_Deadline_Is_Valid</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference
+        >New_Application_Deadline</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Deadline_And_Open</targetReference>
+            </connector>
+            <label>New Deadline Valid</label>
+        </rules>
+    </decisions>
+
+    <description
+  >One screen flow launched from Job Position buttons. It handles Publish, Close, Cancel, and Reopen using the actionType input parameter.</description>
+    <interviewLabel
+  >Change Job Position Status {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Change Job Position Status</label>
+
+    <loops>
+        <name>Loop_Interview_Stages</name>
+        <label>Loop Interview Stages</label>
+        <locationX>620</locationX>
+        <locationY>700</locationY>
+        <collectionReference>Get_Interview_Stages</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Interview_Stage_Weight</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Check_Publishing_Requirements</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>FREE_FORM_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+
+    <processType>Flow</processType>
+
+    <recordLookups>
+        <name>Get_Job_Position</name>
+        <label>Get Job Position</label>
+        <locationX>620</locationX>
+        <locationY>120</locationY>
+        <assignNullValuesIfNoRecordsFound
+    >false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Requested_Action</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <object>Job_Position__c</object>
+        <outputReference>jobPosition</outputReference>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Status__c</queriedFields>
+        <queriedFields>Title__c</queriedFields>
+        <queriedFields>Portal_Description__c</queriedFields>
+        <queriedFields>Application_Deadline__c</queriedFields>
+    </recordLookups>
+
+    <recordLookups>
+        <name>Get_Interview_Stages</name>
+        <label>Get Interview Stages</label>
+        <locationX>620</locationX>
+        <locationY>560</locationY>
+        <assignNullValuesIfNoRecordsFound
+    >false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Interview_Stages</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Job_Position__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Interview_Stage__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Stage_Weight__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+
+    <recordUpdates>
+        <name>Update_Status_Open</name>
+        <label>Set Status to Open</label>
+        <locationX>620</locationX>
+        <locationY>1080</locationY>
+        <faultConnector>
+            <targetReference>Screen_Publish_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Open</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Job_Position__c</object>
+    </recordUpdates>
+
+    <recordUpdates>
+        <name>Update_Status_Closed</name>
+        <label>Set Status to Closed</label>
+        <locationX>120</locationX>
+        <locationY>720</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Closed</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Job_Position__c</object>
+    </recordUpdates>
+
+    <recordUpdates>
+        <name>Update_Applications_Cancelled</name>
+        <label>Cancel Related Applications</label>
+        <locationX>360</locationX>
+        <locationY>840</locationY>
+        <connector>
+            <targetReference>Update_Status_Cancelled</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Job_Position__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Selection_Status__c</field>
+            <value>
+                <stringValue>Cancelled</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Job_Application__c</object>
+    </recordUpdates>
+
+    <recordUpdates>
+        <name>Update_Status_Cancelled</name>
+        <label>Set Status to Cancelled</label>
+        <locationX>360</locationX>
+        <locationY>1000</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Cancelled</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Job_Position__c</object>
+    </recordUpdates>
+
+    <recordUpdates>
+        <name>Update_Deadline_And_Open</name>
+        <label>Update Deadline and Set Status to Open</label>
+        <locationX>1120</locationX>
+        <locationY>1040</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Application_Deadline__c</field>
+            <value>
+                <elementReference>New_Application_Deadline</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Open</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Job_Position__c</object>
+    </recordUpdates>
+
+    <screens>
+        <name>Screen_Publish_Confirm</name>
+        <label>Publish Job Position</label>
+        <locationX>620</locationX>
+        <locationY>420</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Get_Interview_Stages</targetReference>
+        </connector>
+        <fields>
+            <name>Publish_Header</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Publish Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to publish &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The system will verify the title, portal description, application deadline, and stage weights before opening the offer.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to continue.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Close_Confirm</name>
+        <label>Close Job Position</label>
+        <locationX>120</locationX>
+        <locationY>580</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Update_Status_Closed</targetReference>
+        </connector>
+        <fields>
+            <name>Close_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Close Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;You are about to close &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;The offer will stop accepting new applications, but existing recruitment work can continue internally.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Cancel_Confirm</name>
+        <label>Cancel Job Position</label>
+        <locationX>360</locationX>
+        <locationY>420</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Check_Cancel_Allowed</targetReference>
+        </connector>
+        <fields>
+            <name>Cancel_Warning</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Cancel Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Cancelling &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; will set the position to &lt;b&gt;Cancelled&lt;/b&gt; and cancel all related job applications.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Warning:&lt;/b&gt; This action should be used only when the recruitment is abandoned.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to confirm.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Reopen_Confirm</name>
+        <label>Reopen Job Position</label>
+        <locationX>1120</locationX>
+        <locationY>720</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Update_Status_Open</targetReference>
+        </connector>
+        <fields>
+            <name>Reopen_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Reopen Job Position&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The current application deadline is still valid.&lt;/p&gt;&lt;p&gt;Click &lt;b&gt;Next&lt;/b&gt; to reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt; and set its status back to &lt;b&gt;Open&lt;/b&gt;.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Reopen_New_Deadline</name>
+        <label>Reopen With New Deadline</label>
+        <locationX>1120</locationX>
+        <locationY>720</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Check_New_Reopen_Deadline</targetReference>
+        </connector>
+        <fields>
+            <name>Reopen_Expired_Deadline_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;The current application deadline has passed.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;To reopen &lt;b&gt;{!jobPosition.Title__c}&lt;/b&gt;, please choose a new application deadline.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>New_Application_Deadline</name>
+            <dataType>Date</dataType>
+            <fieldText>New Application Deadline</fieldText>
+            <fieldType>InputField</fieldType>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Publish_Error</name>
+        <label>Cannot Publish</label>
+        <locationX>980</locationX>
+        <locationY>900</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Publish_Error_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Cannot publish this Job Position.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Please review the publishing configuration before opening the offer.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Status must be &lt;b&gt;Draft&lt;/b&gt;.&lt;/li&gt;&lt;li&gt;The title must be filled.&lt;/li&gt;&lt;li&gt;The portal description must be filled.&lt;/li&gt;&lt;li&gt;The application deadline must be today or a future date.&lt;/li&gt;&lt;li&gt;At least one interview stage must be configured.&lt;/li&gt;&lt;li&gt;The sum of all interview stage weights must equal 100%.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;b&gt;Current total stage weight:&lt;/b&gt; {!totalStageWeight}%&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Reopen_Deadline_Error</name>
+        <label>Invalid Reopen Deadline</label>
+        <locationX>1400</locationX>
+        <locationY>860</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Reopen_Deadline_Error_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;Invalid deadline.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The new application deadline must be today or a future date. Please go back and choose a valid deadline.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <screens>
+        <name>Screen_Invalid_Action</name>
+        <label>Action Not Available</label>
+        <locationX>1400</locationX>
+        <locationY>260</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Invalid_Action_Message</name>
+            <fieldText
+      >&lt;p&gt;&lt;b&gt;This action is not available for the current status.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Current status: &lt;b&gt;{!jobPosition.Status__c}&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Requested action: &lt;b&gt;{!actionType}&lt;/b&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <start>
+        <locationX>620</locationX>
+        <locationY>20</locationY>
+        <connector>
+            <targetReference>Get_Job_Position</targetReference>
+        </connector>
+    </start>
+
+    <status>Active</status>
+
+    <variables>
+        <name>actionType</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+
+    <variables>
+        <name>jobPosition</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Job_Position__c</objectType>
+    </variables>
+
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+
+    <variables>
+        <name>stageCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0</numberValue>
+        </value>
+    </variables>
+
+    <variables>
+        <name>totalStageWeight</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+        <value>
+            <numberValue>0</numberValue>
+        </value>
+    </variables>
+</Flow>
