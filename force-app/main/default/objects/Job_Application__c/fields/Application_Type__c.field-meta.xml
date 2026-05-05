@@ -10,9 +10,9 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Direct</fullName>
+                <fullName>Spontaneous</fullName>
                 <default>false</default>
-                <label>Direct</label>
+                <label>Spontaneous</label>
             </value>
             <value>
                 <fullName>Referral</fullName>
