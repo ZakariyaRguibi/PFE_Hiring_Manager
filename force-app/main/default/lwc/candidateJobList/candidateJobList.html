@@ -1,0 +1,413 @@
+<template>
+  <section class="jobs-page">
+    <div class="header">
+      <p class="eyebrow">TalentForce Careers</p>
+      <h1>Open Positions</h1>
+      <p class="subtitle">
+        Explore our current opportunities and apply to the position that matches
+        your profile.
+      </p>
+    </div>
+
+    <template if:true={isLoading}>
+      <div class="state">Loading open positions...</div>
+    </template>
+
+    <template if:true={hasJobs}>
+      <div class="jobs-grid">
+        <template for:each={jobs} for:item="job">
+          <article key={job.recordId} class="job-card">
+            <div>
+              <h2>{job.title}</h2>
+              <p class="deadline">
+                Application deadline: {job.applicationDeadline}
+              </p>
+              <p class="description">{job.portalDescription}</p>
+            </div>
+
+            <button
+              class="primary-button"
+              data-id={job.recordId}
+              onclick={handleViewDetails}
+            >
+              View details
+            </button>
+          </article>
+        </template>
+      </div>
+    </template>
+
+    <template if:true={hasNoJobs}>
+      <div class="empty-state">
+        No open positions are available at the moment.
+      </div>
+    </template>
+
+    <template if:true={error}>
+      <div class="error-state">An error occurred while loading jobs.</div>
+    </template>
+  </section>
+
+  <!-- Job details modal -->
+  <template if:true={isJobDetailsModalOpen}>
+    <section class="modal-backdrop" onclick={handleCloseModal}></section>
+
+    <section
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="job-modal-title"
+    >
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Job Details</p>
+          <h2 id="job-modal-title">{selectedJob.title}</h2>
+        </div>
+
+        <button class="close-button" onclick={handleCloseModal} title="Close">
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="deadline">
+          Application deadline: {selectedJob.applicationDeadline}
+        </p>
+
+        <div class="modal-description">{selectedJob.portalDescription}</div>
+
+        <template if:true={showAuthMessage}>
+          <div class="auth-message">
+            <h3>Authentication required</h3>
+            <p>
+              To apply for this position, please log in or create an account
+              first.
+            </p>
+
+            <div class="auth-actions">
+              <button class="secondary-button" onclick={handleLogin}>
+                Log in
+              </button>
+
+              <button class="primary-button" onclick={handleRegister}>
+                Create account
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="modal-footer">
+        <button class="secondary-button" onclick={handleCloseModal}>
+          Close
+        </button>
+
+        <button class="primary-button" onclick={handleApply}>Apply</button>
+      </div>
+    </section>
+  </template>
+
+  <!-- Application modal -->
+  <template if:true={isApplicationModalOpen}>
+    <section class="modal-backdrop" onclick={handleCloseModal}></section>
+
+    <section
+      class="modal application-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="application-modal-title"
+    >
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Application Form</p>
+          <h2 id="application-modal-title">Apply for {selectedJob.title}</h2>
+        </div>
+
+        <button class="close-button" onclick={handleCloseModal} title="Close">
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Upload step -->
+        <template if:true={isUploadStep}>
+          <div class="form-section">
+            <h3>Candidate information</h3>
+            <p class="section-help">
+              This information is linked to your candidate account and cannot be
+              edited here.
+            </p>
+
+            <div class="readonly-grid">
+              <div class="readonly-field">
+                <span>First Name</span>
+                <strong>{candidateProfile.firstName}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Last Name</span>
+                <strong>{candidateProfile.lastName}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Email</span>
+                <strong>{candidateProfile.email}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Phone</span>
+                <strong>{candidateProfile.phone}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Education Level</span>
+                <strong>{candidateProfile.educationLevel}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Years of Experience</span>
+                <strong>{candidateProfile.yearsOfExperience}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Selected job</h3>
+
+            <div class="readonly-field full-width">
+              <span>Job Position</span>
+              <strong>{selectedJob.title}</strong>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Documents</h3>
+            <p class="section-help">
+              You can reuse documents already uploaded to your candidate
+              profile, or upload a new version.
+            </p>
+
+            <div class="document-choice-card">
+              <h4>CV</h4>
+
+              <template if:true={hasExistingFiles}>
+                <lightning-radio-group
+                  name="cvMode"
+                  label="CV source"
+                  options={cvModeOptions}
+                  value={cvMode}
+                  type="radio"
+                  onchange={handleCvModeChange}
+                >
+                </lightning-radio-group>
+              </template>
+
+              <template if:true={isCvExistingMode}>
+                <template if:true={hasExistingFiles}>
+                  <lightning-combobox
+                    class="review-input"
+                    label="Select existing CV"
+                    placeholder="Choose an existing file"
+                    options={candidateFileOptions}
+                    value={selectedCvContentDocumentId}
+                    onchange={handleExistingCvChange}
+                  >
+                  </lightning-combobox>
+                </template>
+
+                <template if:false={hasExistingFiles}>
+                  <p class="section-help">
+                    No existing documents found. Please upload a new CV.
+                  </p>
+                </template>
+              </template>
+
+              <template if:true={isCvUploadMode}>
+                <label class="upload-box single-upload">
+                  <span>Upload new CV</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onchange={handleCvChange}
+                  />
+
+                  <template if:true={cvFileName}>
+                    <p class="file-name">{cvFileName}</p>
+                  </template>
+                </label>
+              </template>
+            </div>
+
+            <div class="document-choice-card">
+              <h4>Motivation Letter</h4>
+
+              <template if:true={hasExistingFiles}>
+                <lightning-radio-group
+                  name="motivationLetterMode"
+                  label="Motivation letter source"
+                  options={motivationLetterModeOptions}
+                  value={motivationLetterMode}
+                  type="radio"
+                  onchange={handleMotivationLetterModeChange}
+                >
+                </lightning-radio-group>
+              </template>
+
+              <template if:true={isMotivationExistingMode}>
+                <template if:true={hasExistingFiles}>
+                  <lightning-combobox
+                    class="review-input"
+                    label="Select existing motivation letter"
+                    placeholder="Choose an existing file"
+                    options={candidateFileOptions}
+                    value={selectedMotivationLetterContentDocumentId}
+                    onchange={handleExistingMotivationLetterChange}
+                  >
+                  </lightning-combobox>
+                </template>
+
+                <template if:false={hasExistingFiles}>
+                  <p class="section-help">
+                    No existing documents found. You can continue without a
+                    motivation letter or upload a new one.
+                  </p>
+                </template>
+              </template>
+
+              <template if:true={isMotivationUploadMode}>
+                <label class="upload-box single-upload">
+                  <span>Upload new motivation letter</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onchange={handleMotivationLetterChange}
+                  />
+
+                  <template if:true={motivationLetterFileName}>
+                    <p class="file-name">{motivationLetterFileName}</p>
+                  </template>
+                </label>
+              </template>
+            </div>
+
+            <template if:true={uploadMessage}>
+              <p class="success-inline">{uploadMessage}</p>
+            </template>
+          </div>
+        </template>
+
+        <!-- Review step -->
+        <template if:true={isReviewStep}>
+          <div class="form-section">
+            <h3>Extracted CV information</h3>
+            <p class="section-help">
+              Please review the information extracted from your CV. You can
+              correct it before submitting your application.
+            </p>
+
+            <lightning-textarea
+              class="review-input"
+              label="Extracted Skills"
+              data-field="skills"
+              value={extractedSkills}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-textarea>
+
+            <lightning-textarea
+              class="review-input"
+              label="Extracted Keywords"
+              data-field="keywords"
+              value={extractedKeywords}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-textarea>
+
+            <lightning-combobox
+              class="review-input"
+              label="Extracted Education"
+              data-field="education"
+              value={extractedEducation}
+              options={educationOptions}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-combobox>
+
+            <lightning-input
+              class="review-input"
+              type="number"
+              min="0"
+              label="Extracted Experience"
+              data-field="experience"
+              value={extractedExperience}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-input>
+
+            <template if:true={uploadMessage}>
+              <p class="success-inline">{uploadMessage}</p>
+            </template>
+
+            <template if:true={submissionMessage}>
+              <p class="success-inline">{submissionMessage}</p>
+            </template>
+          </div>
+        </template>
+
+        <!-- Success step -->
+        <template if:true={isSuccessStep}>
+          <div class="success-panel">
+            <h3>Application submitted successfully.</h3>
+
+            <p>
+              Your application reference is
+              <strong>{createdJobApplicationName}</strong>.
+            </p>
+
+            <p>You can now track your application from your candidate space.</p>
+
+            <p class="redirect-message">Redirecting to My Applications...</p>
+          </div>
+        </template>
+      </div>
+
+      <div class="modal-footer">
+        <template if:false={isSuccessStep}>
+          <button class="secondary-button" onclick={handleCloseModal}>
+            Cancel
+          </button>
+        </template>
+
+        <template if:true={isReviewStep}>
+          <button class="secondary-button" onclick={handleBackToUpload}>
+            Back
+          </button>
+        </template>
+
+        <template if:true={isUploadStep}>
+          <button
+            class="primary-button"
+            onclick={handleNext}
+            disabled={isNextDisabled}
+          >
+            {nextButtonLabel}
+          </button>
+        </template>
+
+        <template if:true={isReviewStep}>
+          <button
+            class="primary-button"
+            onclick={handleFinalApply}
+            disabled={isApplyDisabled}
+          >
+            <template if:true={isSubmittingApplication}>
+              Submitting...
+            </template>
+
+            <template if:false={isSubmittingApplication}> Apply </template>
+          </button>
+        </template>
+      </div>
+    </section>
+  </template>
+</template>
