@@ -1,0 +1,57 @@
+<template>
+  <header class="portal-header">
+    <div class="header-inner">
+      <button class="brand" onclick={goHome} title="TalentForce Home">
+        <img src={logoUrl} alt="TalentForce Recruit" class="brand-logo" />
+      </button>
+
+      <nav class="nav-links" aria-label="Candidate portal navigation">
+        <button class={homeClass} data-page="home" onclick={navigateToPage}>
+          Home
+        </button>
+
+        <button class={jobsClass} data-page="jobs" onclick={navigateToPage}>
+          Jobs
+        </button>
+
+        <button
+          class={spontaneousClass}
+          data-page="spontaneous-application"
+          onclick={navigateToPage}
+        >
+          Spontaneous Application
+        </button>
+
+        <button
+          class={applicationsClass}
+          data-page="my-applications"
+          onclick={navigateToPage}
+        >
+          My Applications
+        </button>
+
+        <button
+          class={profileClass}
+          data-page="profile"
+          onclick={navigateToPage}
+        >
+          Profile
+        </button>
+      </nav>
+
+      <div class="auth-actions">
+        <template if:true={isGuestUser}>
+          <button class="login-button" onclick={handleLogin}>Log in</button>
+
+          <button class="primary-auth-button" onclick={handleRegister}>
+            Create account
+          </button>
+        </template>
+
+        <template if:false={isGuestUser}>
+          <button class="logout-button" onclick={handleLogout}>Log out</button>
+        </template>
+      </div>
+    </div>
+  </header>
+</template>

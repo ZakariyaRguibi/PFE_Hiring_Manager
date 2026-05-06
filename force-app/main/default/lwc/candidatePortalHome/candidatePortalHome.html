@@ -1,0 +1,130 @@
+<template>
+  <section class="home-page">
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">TalentForce Recruit</p>
+
+          <h1>Find the role that matches your ambition.</h1>
+
+          <p class="subtitle">
+            Discover open opportunities, submit your profile, and follow your
+            recruitment journey from one secure candidate portal.
+          </p>
+
+          <div class="hero-actions">
+            <button class="primary-button" onclick={goToJobs}>
+              Explore jobs
+            </button>
+
+            <button class="secondary-button" onclick={goToSpontaneous}>
+              Submit your profile
+            </button>
+          </div>
+        </div>
+
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span>01</span>
+            <strong>Apply</strong>
+            <p>Browse roles and submit your application online.</p>
+          </div>
+
+          <div class="metric-card">
+            <span>02</span>
+            <strong>Review</strong>
+            <p>Validate your CV information before submission.</p>
+          </div>
+
+          <div class="metric-card">
+            <span>03</span>
+            <strong>Track</strong>
+            <p>Follow your recruitment progress at every stage.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Candidate Space</p>
+          <h2>Start from where you need.</h2>
+        </div>
+      </div>
+
+      <div class="quick-grid">
+        <article class="quick-card" onclick={goToJobs}>
+          <span class="quick-label">Jobs</span>
+          <h3>Open Positions</h3>
+          <p>
+            Explore active opportunities and apply to the position that fits
+            your profile.
+          </p>
+          <span class="quick-link">Browse jobs</span>
+        </article>
+
+        <article class="quick-card featured" onclick={goToSpontaneous}>
+          <span class="quick-label">Talent Pool</span>
+          <h3>Spontaneous Application</h3>
+          <p>
+            Send your profile even when no current job offer matches your
+            background.
+          </p>
+          <span class="quick-link">Submit profile</span>
+        </article>
+
+        <article class="quick-card" onclick={goToApplications}>
+          <span class="quick-label">Tracking</span>
+          <h3>My Applications</h3>
+          <p>
+            Check your submitted applications, stages, references, and
+            decisions.
+          </p>
+          <span class="quick-link">View status</span>
+        </article>
+
+        <article class="quick-card" onclick={goToProfile}>
+          <span class="quick-label">Account</span>
+          <h3>My Profile</h3>
+          <p>
+            Review your candidate information and uploaded recruitment
+            documents.
+          </p>
+          <span class="quick-link">Open profile</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="process-section">
+      <div class="process-copy">
+        <p class="eyebrow">How it works</p>
+        <h2>A clear candidate journey from application to decision.</h2>
+      </div>
+
+      <div class="process-list">
+        <div class="process-item">
+          <span>Apply online</span>
+          <p>
+            Choose an open position or submit your profile to the talent pool.
+          </p>
+        </div>
+
+        <div class="process-item">
+          <span>Upload documents</span>
+          <p>
+            Attach your CV and optional motivation letter using Salesforce
+            Files.
+          </p>
+        </div>
+
+        <div class="process-item">
+          <span>Track progress</span>
+          <p>
+            Follow your application status directly from your candidate space.
+          </p>
+        </div>
+      </div>
+    </section>
+  </section>
+</template>
