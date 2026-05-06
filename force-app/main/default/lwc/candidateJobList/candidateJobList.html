@@ -48,7 +48,6 @@
     </template>
   </section>
 
-  <!-- Job details modal -->
   <template if:true={isJobDetailsModalOpen}>
     <section class="modal-backdrop" onclick={handleCloseModal}></section>
 
@@ -107,7 +106,6 @@
     </section>
   </template>
 
-  <!-- Application modal -->
   <template if:true={isApplicationModalOpen}>
     <section class="modal-backdrop" onclick={handleCloseModal}></section>
 
@@ -129,7 +127,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- Upload step -->
         <template if:true={isUploadStep}>
           <div class="form-section">
             <h3>Candidate information</h3>
@@ -225,9 +222,14 @@
               <template if:true={isCvUploadMode}>
                 <label class="upload-box single-upload">
                   <span>Upload new CV</span>
+                  <p class="upload-help">
+                    Please upload your CV in PDF format only. DOC and DOCX files
+                    are not supported by the automatic CV analysis.
+                  </p>
+
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,application/pdf"
                     onchange={handleCvChange}
                   />
 
@@ -277,9 +279,13 @@
               <template if:true={isMotivationUploadMode}>
                 <label class="upload-box single-upload">
                   <span>Upload new motivation letter</span>
+                  <p class="upload-help">
+                    Please upload your motivation letter in PDF format only.
+                  </p>
+
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,application/pdf"
                     onchange={handleMotivationLetterChange}
                   />
 
@@ -291,12 +297,11 @@
             </div>
 
             <template if:true={uploadMessage}>
-              <p class="success-inline">{uploadMessage}</p>
+              <p class={uploadMessageClass}>{uploadMessage}</p>
             </template>
           </div>
         </template>
 
-        <!-- Review step -->
         <template if:true={isReviewStep}>
           <div class="form-section">
             <h3>Extracted CV information</h3>
@@ -345,16 +350,11 @@
             </lightning-input>
 
             <template if:true={uploadMessage}>
-              <p class="success-inline">{uploadMessage}</p>
-            </template>
-
-            <template if:true={submissionMessage}>
-              <p class="success-inline">{submissionMessage}</p>
+              <p class={uploadMessageClass}>{uploadMessage}</p>
             </template>
           </div>
         </template>
 
-        <!-- Success step -->
         <template if:true={isSuccessStep}>
           <div class="success-panel">
             <h3>Application submitted successfully.</h3>
