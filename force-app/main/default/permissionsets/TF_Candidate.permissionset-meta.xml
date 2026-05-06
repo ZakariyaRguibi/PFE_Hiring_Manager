@@ -84,11 +84,7 @@
         <field>Job_Application__c.Extracted_Skills__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Job_Application__c.Job_Position__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    
     <fieldPermissions>
         <editable>true</editable>
         <field>Job_Application__c.Motivation_Letter__c</field>
