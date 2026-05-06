@@ -131,11 +131,7 @@
         <field>Job_Position__c.Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>Job_Position__c.Title__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    
 
     <hasActivationRequired>false</hasActivationRequired>
     <label>TF Candidate</label>
