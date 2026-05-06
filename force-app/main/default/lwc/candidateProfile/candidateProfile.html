@@ -1,0 +1,116 @@
+<template>
+  <section class="profile-page">
+    <div class="header">
+      <p class="eyebrow">Candidate Space</p>
+      <h1>My Profile</h1>
+      <p class="subtitle">
+        Review your candidate information and uploaded documents.
+      </p>
+    </div>
+
+    <template if:true={isLoading}>
+      <div class="state">Loading your profile...</div>
+    </template>
+
+    <template if:true={showError}>
+      <div class="error-state">
+        <p>{errorMessage}</p>
+      </div>
+    </template>
+
+    <template if:true={showProfile}>
+      <div class="profile-grid">
+        <section class="profile-card">
+          <div class="section-title">
+            <p class="section-kicker">Personal details</p>
+            <h2>Candidate Information</h2>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-field">
+              <span>First Name</span>
+              <strong>{candidateProfile.firstName}</strong>
+            </div>
+
+            <div class="info-field">
+              <span>Last Name</span>
+              <strong>{candidateProfile.lastName}</strong>
+            </div>
+
+            <div class="info-field">
+              <span>Email</span>
+              <strong>{candidateProfile.email}</strong>
+            </div>
+
+            <div class="info-field">
+              <span>Phone</span>
+              <strong>{candidateProfile.phone}</strong>
+            </div>
+
+            <div class="info-field">
+              <span>Education Level</span>
+              <strong>{candidateProfile.educationLevel}</strong>
+            </div>
+
+            <div class="info-field">
+              <span>Years of Experience</span>
+              <strong>{candidateProfile.yearsOfExperience}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-card">
+          <div class="section-title">
+            <p class="section-kicker">Documents</p>
+            <h2>Uploaded Files</h2>
+          </div>
+
+          <template if:true={showFileError}>
+            <div class="empty-state">{fileErrorMessage}</div>
+          </template>
+
+          <template if:true={hasFiles}>
+            <div class="files-list">
+              <template for:each={candidateFiles} for:item="file">
+                <article key={file.contentDocumentId} class="file-card">
+                  <div class="file-icon"></div>
+
+                  <div class="file-content">
+                    <strong>{file.label}</strong>
+                    <p>{file.fileType}</p>
+
+                    <div class="file-actions">
+                      <button
+                        class="secondary-button"
+                        type="button"
+                        data-url={file.previewUrl}
+                        onclick={handlePreviewFile}
+                      >
+                        Preview
+                      </button>
+
+                      <button
+                        class="secondary-button"
+                        type="button"
+                        data-url={file.downloadUrl}
+                        onclick={handleDownloadFile}
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </template>
+            </div>
+          </template>
+
+          <template if:false={hasFiles}>
+            <template if:false={showFileError}>
+              <div class="empty-state">No uploaded files found yet.</div>
+            </template>
+          </template>
+        </section>
+      </div>
+    </template>
+  </section>
+</template>
