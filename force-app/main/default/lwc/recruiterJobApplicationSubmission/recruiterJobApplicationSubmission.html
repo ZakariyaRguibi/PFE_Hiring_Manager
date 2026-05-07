@@ -1,0 +1,307 @@
+<template>
+  <section class="slds-card form-shell">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__figure">
+          <lightning-icon
+            icon-name="standard:job_profile"
+            size="small"
+          ></lightning-icon>
+        </div>
+
+        <div class="slds-media__body">
+          <h1 class="slds-card__header-title">
+            <span>New Job Application</span>
+          </h1>
+        </div>
+      </header>
+    </div>
+
+    <div class="slds-card__body slds-card__body_inner">
+      <template if:true={message}>
+        <div class={messageClass} role="alert">
+          <span class="slds-assistive-text">{messageVariant}</span>
+          <h2>{message}</h2>
+        </div>
+      </template>
+
+      <section class="slds-section slds-is-open">
+        <h2 class="slds-section__title">
+          <span class="slds-truncate slds-p-horizontal_small">
+            Application Details
+          </span>
+        </h2>
+
+        <div class="slds-section__content">
+          <div class="slds-grid slds-wrap slds-gutters">
+            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+              <div class="lookup-wrapper">
+                <lightning-input
+                  type="search"
+                  label="Candidate"
+                  value={candidateSearchTerm}
+                  onchange={handleCandidateSearchInput}
+                  placeholder="Search by first name or last name"
+                  required
+                >
+                </lightning-input>
+
+                <template if:true={hasCandidateSearchResults}>
+                  <div class="lookup-results">
+                    <template
+                      for:each={candidateSearchResults}
+                      for:item="candidate"
+                    >
+                      <button
+                        key={candidate.value}
+                        type="button"
+                        class="lookup-result"
+                        data-id={candidate.value}
+                        data-label={candidate.label}
+                        onclick={handleCandidateSelect}
+                      >
+                        <span class="lookup-title">{candidate.label}</span>
+
+                        <span class="lookup-meta">
+                          <template if:true={candidate.description}>
+                            <span>{candidate.description}</span>
+                          </template>
+
+                          <template if:true={candidate.extraInfo}>
+                            <span>{candidate.extraInfo}</span>
+                          </template>
+                        </span>
+                      </button>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+              <lightning-combobox
+                label="Application Type"
+                value={applicationType}
+                options={applicationTypeOptions}
+                onchange={handleApplicationTypeChange}
+                required
+              >
+              </lightning-combobox>
+            </div>
+
+            <template if:true={isReferralApplication}>
+              <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                <div class="lookup-wrapper">
+                  <lightning-input
+                    type="search"
+                    label="Job Position"
+                    value={jobSearchTerm}
+                    onchange={handleJobSearchInput}
+                    placeholder="Search by job title"
+                    required
+                  >
+                  </lightning-input>
+
+                  <template if:true={hasJobSearchResults}>
+                    <div class="lookup-results">
+                      <template for:each={jobSearchResults} for:item="job">
+                        <button
+                          key={job.value}
+                          type="button"
+                          class="lookup-result"
+                          data-id={job.value}
+                          data-label={job.label}
+                          onclick={handleJobSelect}
+                        >
+                          <span class="lookup-title">{job.label}</span>
+
+                          <span class="lookup-meta">
+                            <template if:true={job.description}>
+                              <span>{job.description}</span>
+                            </template>
+
+                            <template if:true={job.extraInfo}>
+                              <span>{job.extraInfo}</span>
+                            </template>
+                          </span>
+                        </button>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <section class="slds-section slds-is-open">
+        <h2 class="slds-section__title">
+          <span class="slds-truncate slds-p-horizontal_small">Documents</span>
+        </h2>
+
+        <div class="slds-section__content">
+          <template if:true={isLoadingFiles}>
+            <lightning-spinner
+              alternative-text="Loading candidate files"
+              size="small"
+            ></lightning-spinner>
+          </template>
+
+          <div class="document-card">
+            <h3>CV</h3>
+
+            <template if:true={hasExistingFiles}>
+              <lightning-radio-group
+                name="cvMode"
+                label="CV source"
+                options={documentModeOptions}
+                value={cvMode}
+                type="radio"
+                onchange={handleCvModeChange}
+              >
+              </lightning-radio-group>
+            </template>
+
+            <template if:true={isCvExistingMode}>
+              <lightning-combobox
+                label="Select existing CV"
+                placeholder="Choose a file"
+                options={candidateFileOptions}
+                value={selectedCvContentDocumentId}
+                onchange={handleExistingCvChange}
+              >
+              </lightning-combobox>
+            </template>
+
+            <template if:true={isCvUploadMode}>
+              <lightning-input
+                type="file"
+                label="Upload new CV"
+                accept=".pdf,.txt,.png,.jpg,.jpeg,application/pdf,text/plain,image/png,image/jpeg"
+                onchange={handleCvFileChange}
+              >
+              </lightning-input>
+
+              <template if:true={cvFileName}>
+                <p class="file-name">{cvFileName}</p>
+              </template>
+            </template>
+          </div>
+
+          <div class="document-card">
+            <h3>Motivation Letter</h3>
+
+            <lightning-radio-group
+              name="motivationLetterMode"
+              label="Motivation letter source"
+              options={motivationLetterModeOptions}
+              value={motivationLetterMode}
+              type="radio"
+              onchange={handleMotivationLetterModeChange}
+            >
+            </lightning-radio-group>
+
+            <template if:true={isMotivationExistingMode}>
+              <lightning-combobox
+                label="Select existing motivation letter"
+                placeholder="Choose a file"
+                options={candidateFileOptions}
+                value={selectedMotivationLetterContentDocumentId}
+                onchange={handleExistingMotivationLetterChange}
+              >
+              </lightning-combobox>
+            </template>
+
+            <template if:true={isMotivationUploadMode}>
+              <lightning-input
+                type="file"
+                label="Upload new motivation letter"
+                accept=".pdf,.txt,.png,.jpg,.jpeg,application/pdf,text/plain,image/png,image/jpeg"
+                onchange={handleMotivationLetterFileChange}
+              >
+              </lightning-input>
+
+              <template if:true={motivationLetterFileName}>
+                <p class="file-name">{motivationLetterFileName}</p>
+              </template>
+            </template>
+          </div>
+
+          <div class="slds-m-top_medium">
+            <lightning-button
+              label="Analyze CV"
+              variant="neutral"
+              onclick={handleParseCv}
+              disabled={isBusy}
+            >
+            </lightning-button>
+          </div>
+        </div>
+      </section>
+
+      <section class="slds-section slds-is-open">
+        <h2 class="slds-section__title">
+          <span class="slds-truncate slds-p-horizontal_small">
+            CV Parsing and Extraction
+          </span>
+        </h2>
+
+        <div class="slds-section__content">
+          <lightning-textarea
+            label="Extracted Skills"
+            data-field="skills"
+            value={extractedSkills}
+            onchange={handleExtractedFieldChange}
+          >
+          </lightning-textarea>
+
+          <lightning-textarea
+            label="Extracted Keywords"
+            data-field="keywords"
+            value={extractedKeywords}
+            onchange={handleExtractedFieldChange}
+          >
+          </lightning-textarea>
+
+          <lightning-combobox
+            label="Extracted Education"
+            data-field="education"
+            value={extractedEducation}
+            options={educationOptions}
+            onchange={handleExtractedFieldChange}
+          >
+          </lightning-combobox>
+
+          <lightning-input
+            type="number"
+            min="0"
+            label="Extracted Experience"
+            data-field="experience"
+            value={extractedExperience}
+            onchange={handleExtractedFieldChange}
+          >
+          </lightning-input>
+        </div>
+      </section>
+    </div>
+
+    <footer class="slds-card__footer modal-footer">
+      <lightning-button
+        label="Cancel"
+        variant="neutral"
+        onclick={handleCancel}
+        disabled={isBusy}
+      >
+      </lightning-button>
+
+      <lightning-button
+        label={saveButtonLabel}
+        variant="brand"
+        onclick={handleSave}
+        disabled={isBusy}
+      >
+      </lightning-button>
+    </footer>
+  </section>
+</template>
