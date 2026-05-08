@@ -1,0 +1,267 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f7f8fa;
+}
+
+.profile-page {
+  padding: 48px 28px 64px;
+  min-height: calc(100vh - 72px);
+}
+
+.header,
+.profile-grid {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.eyebrow,
+.section-kicker {
+  margin: 0 0 10px;
+  color: #f28c28;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+h1 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(38px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin: 16px 0 0;
+  color: #5b6472;
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 26px;
+}
+
+.section-title {
+  margin-bottom: 20px;
+}
+
+.section-title h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.info-field {
+  background: #f9fafb;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.info-field span {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+
+.info-field strong {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.files-list {
+  display: grid;
+  gap: 10px;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.file-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eef3fb;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.file-icon::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  width: 16px;
+  height: 21px;
+  border: 2px solid #0b3d91;
+  border-radius: 3px;
+}
+
+.file-card strong {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.file-card p {
+  margin: 3px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.state,
+.empty-state,
+.error-state {
+  max-width: 1080px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 20px;
+  color: #374151;
+}
+
+.empty-state {
+  border-style: dashed;
+  text-align: center;
+  font-weight: 600;
+}
+
+.error-state {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+@media (max-width: 760px) {
+  .profile-page {
+    padding: 28px 16px 44px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    border-radius: 14px;
+    padding: 20px;
+  }
+}
+.debug-message {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.06);
+}
+.file-content {
+  flex: 1;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.secondary-button {
+  border: 1px solid #d8dde6;
+  background: white;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.secondary-button:hover {
+  background: #f3f4f6;
+}
+
+.preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.preview-modal {
+  width: min(1000px, 95vw);
+  height: 85vh;
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.preview-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.close-button {
+  border: none;
+  background: transparent;
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.preview-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

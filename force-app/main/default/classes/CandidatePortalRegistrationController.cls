@@ -1,7 +1,8 @@
 /**
  * @description Controller used by the TalentForce Candidate Portal self-registration form.
- * It creates an External Identity user account, assigns the TF_Candidate permission set,
- * sets the password chosen by the candidate, and asynchronously creates the related Candidate__c profile.
+ * It creates an External Identity user account, assigns the required candidate permission sets,
+ * sets the password chosen by the candidate, asynchronously creates the related Candidate__c profile,
+ * and shares that candidate profile with the newly created portal user.
  *
  * The class runs without sharing intentionally because guest users must be able to start
  * the registration process before they own any Salesforce records.
@@ -10,6 +11,12 @@ public without sharing class CandidatePortalRegistrationController {
   private static final String EXTERNAL_IDENTITY_PROFILE_NAME = 'External Identity User';
   private static final String EXTERNAL_IDENTITY_LICENSE_NAME = 'External Identity';
   private static final String CANDIDATE_PERMISSION_SET_NAME = 'TF_Candidate';
+
+  private static final String PROMPT_TEMPLATE_PERMISSION_SET_LABEL = 'Prompt Template User';
+  private static final Set<String> PROMPT_TEMPLATE_PERMISSION_SET_NAMES = new Set<String>{
+    'Prompt_Template_User',
+    'PromptTemplateUser'
+  };
 
   /**
    * @description Result returned to the registration form after account creation.
@@ -48,73 +55,69 @@ public without sharing class CandidatePortalRegistrationController {
     String password,
     String confirmPassword
   ) {
-    RegistrationResult result = new RegistrationResult();
-    result.success = false;
+    try {
+      validateInput(
+        firstName,
+        lastName,
+        email,
+        phone,
+        educationLevel,
+        yearsOfExperience,
+        password,
+        confirmPassword
+      );
 
-    validateInput(
-      firstName,
-      lastName,
-      email,
-      phone,
-      educationLevel,
-      yearsOfExperience,
-      password,
-      confirmPassword
-    );
+      String trimmedFirstName = firstName.trim();
+      String trimmedLastName = lastName.trim();
+      String normalizedEmail = email.trim().toLowerCase();
+      String normalizedPhone = phone != null ? phone.trim() : null;
+      String trimmedEducationLevel = educationLevel.trim();
 
-    String normalizedEmail = email.trim().toLowerCase();
-    String normalizedPhone = phone != null ? phone.trim() : null;
+      ensureNoExistingUser(normalizedEmail);
+      ensureNoExistingCandidate(normalizedEmail, normalizedPhone);
 
-    ensureNoExistingUser(normalizedEmail);
-    ensureNoExistingCandidate(normalizedEmail, normalizedPhone);
+      Profile externalIdentityProfile = getExternalIdentityProfile();
 
-    Profile externalIdentityProfile = getExternalIdentityProfile();
+      User newUser = buildExternalIdentityUser(
+        trimmedFirstName,
+        trimmedLastName,
+        normalizedEmail,
+        externalIdentityProfile.Id
+      );
 
-    if (!Schema.sObjectType.User.isCreateable()) {
+      Database.insert(newUser, AccessLevel.SYSTEM_MODE);
+
+      assignCandidatePermissionSets(newUser.Id);
+      System.setPassword(newUser.Id, password);
+
+      System.enqueueJob(
+        new CandidateCreationJob(
+          newUser.Id,
+          trimmedFirstName,
+          trimmedLastName,
+          normalizedEmail,
+          normalizedPhone,
+          trimmedEducationLevel,
+          yearsOfExperience
+        )
+      );
+
+      RegistrationResult result = new RegistrationResult();
+      result.success = true;
+      result.message = 'Account created successfully. You can now log in.';
+      result.username = normalizedEmail;
+      result.userId = newUser.Id;
+
+      return result;
+    } catch (AuraHandledException exceptionToSurface) {
+      throw exceptionToSurface;
+    } catch (DmlException dmlException) {
+      throw new AuraHandledException(buildDmlErrorMessage(dmlException));
+    } catch (Exception unexpectedException) {
       throw new AuraHandledException(
-        'User creation is not allowed for the current context. Please contact an administrator.'
+        'Unable to create your account. Please contact an administrator.'
       );
     }
-
-    User newUser = new User(
-      FirstName = firstName.trim(),
-      LastName = lastName.trim(),
-      Email = normalizedEmail,
-      Username = normalizedEmail,
-      Alias = buildAlias(firstName, lastName),
-      CommunityNickname = buildCommunityNickname(firstName, lastName),
-      TimeZoneSidKey = 'Africa/Casablanca',
-      LocaleSidKey = 'en_US',
-      EmailEncodingKey = 'UTF-8',
-      LanguageLocaleKey = 'en_US',
-      ProfileId = externalIdentityProfile.Id,
-      IsActive = true
-    );
-
-    insert newUser;
-
-    assignCandidatePermissionSet(newUser.Id);
-
-    System.setPassword(newUser.Id, password);
-
-    System.enqueueJob(
-      new CandidateCreationJob(
-        newUser.Id,
-        firstName.trim(),
-        lastName.trim(),
-        normalizedEmail,
-        normalizedPhone,
-        educationLevel,
-        yearsOfExperience
-      )
-    );
-
-    result.success = true;
-    result.message = 'Account created successfully. You can now log in.';
-    result.username = normalizedEmail;
-    result.userId = newUser.Id;
-
-    return result;
   }
 
   /**
@@ -126,7 +129,7 @@ public without sharing class CandidatePortalRegistrationController {
    * @param educationLevel Candidate education level.
    * @param yearsOfExperience Candidate years of experience.
    * @param password Candidate password.
-   * @param confirmPassword Candidate password confirmation.
+   * @param confirmPassword Password confirmation.
    */
   private static void validateInput(
     String firstName,
@@ -150,7 +153,7 @@ public without sharing class CandidatePortalRegistrationController {
       throw new AuraHandledException('Email is required.');
     }
 
-    if (!email.contains('@')) {
+    if (!isValidEmail(email)) {
       throw new AuraHandledException('Please enter a valid email address.');
     }
 
@@ -184,22 +187,30 @@ public without sharing class CandidatePortalRegistrationController {
   }
 
   /**
+   * @description Checks whether the provided email has a basic valid format.
+   * @param email Email to validate.
+   * @return True when the email has a valid basic format.
+   */
+  private static Boolean isValidEmail(String email) {
+    Pattern emailPattern = Pattern.compile(
+      '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
+    );
+
+    return emailPattern.matcher(email.trim()).matches();
+  }
+
+  /**
    * @description Returns the External Identity profile used to create candidate portal users.
    * @return External Identity profile.
    */
   private static Profile getExternalIdentityProfile() {
-    if (!Schema.sObjectType.Profile.isAccessible()) {
-      throw new AuraHandledException(
-        'Profile access is not allowed for the current context. Please contact an administrator.'
-      );
-    }
-
     List<Profile> profiles = [
       SELECT Id
       FROM Profile
       WHERE
         Name = :EXTERNAL_IDENTITY_PROFILE_NAME
         AND UserLicense.Name = :EXTERNAL_IDENTITY_LICENSE_NAME
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
 
@@ -213,20 +224,15 @@ public without sharing class CandidatePortalRegistrationController {
   }
 
   /**
-   * @description Ensures no Salesforce user already exists with the same username/email.
+   * @description Ensures no Salesforce user already exists with the same username.
    * @param normalizedEmail Lowercase trimmed email.
    */
   private static void ensureNoExistingUser(String normalizedEmail) {
-    if (!Schema.sObjectType.User.isAccessible()) {
-      throw new AuraHandledException(
-        'User lookup is not allowed for the current context. Please contact an administrator.'
-      );
-    }
-
     List<User> existingUsers = [
       SELECT Id
       FROM User
       WHERE Username = :normalizedEmail
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
 
@@ -246,16 +252,11 @@ public without sharing class CandidatePortalRegistrationController {
     String normalizedEmail,
     String normalizedPhone
   ) {
-    if (!Schema.sObjectType.Candidate__c.isAccessible()) {
-      throw new AuraHandledException(
-        'Candidate lookup is not allowed for the current context. Please contact an administrator.'
-      );
-    }
-
     List<Candidate__c> existingCandidates = [
       SELECT Id
       FROM Candidate__c
       WHERE Email__c = :normalizedEmail OR Phone__c = :normalizedPhone
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
 
@@ -267,41 +268,122 @@ public without sharing class CandidatePortalRegistrationController {
   }
 
   /**
-   * @description Assigns the TF_Candidate permission set to the newly created candidate portal user.
+   * @description Builds the external identity user record.
+   * @param firstName Candidate first name.
+   * @param lastName Candidate last name.
+   * @param normalizedEmail Candidate normalized email.
+   * @param profileId External Identity profile id.
+   * @return User record ready to insert.
+   */
+  private static User buildExternalIdentityUser(
+    String firstName,
+    String lastName,
+    String normalizedEmail,
+    Id profileId
+  ) {
+    return new User(
+      FirstName = firstName,
+      LastName = lastName,
+      Email = normalizedEmail,
+      Username = normalizedEmail,
+      Alias = buildAlias(firstName, lastName),
+      CommunityNickname = buildCommunityNickname(firstName, lastName),
+      TimeZoneSidKey = 'Africa/Casablanca',
+      LocaleSidKey = 'en_US',
+      EmailEncodingKey = 'UTF-8',
+      LanguageLocaleKey = 'en_US',
+      ProfileId = profileId,
+      IsActive = true
+    );
+  }
+
+  /**
+   * @description Assigns all required permission sets to the newly created candidate portal user.
    * @param userId Created candidate portal user id.
    */
-  @SuppressWarnings('PMD.ApexCRUDViolation')
-  private static void assignCandidatePermissionSet(Id userId) {
-    List<PermissionSet> permissionSets = [
-      SELECT Id
+  private static void assignCandidatePermissionSets(Id userId) {
+    List<PermissionSet> candidatePermissionSets = [
+      SELECT Id, Name, Label
       FROM PermissionSet
       WHERE Name = :CANDIDATE_PERMISSION_SET_NAME
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
 
-    if (permissionSets.isEmpty()) {
+    if (candidatePermissionSets.isEmpty()) {
       throw new AuraHandledException(
         'TF_Candidate permission set is not configured. Please contact an administrator.'
       );
     }
 
-    List<PermissionSetAssignment> existingAssignments = [
-      SELECT Id
-      FROM PermissionSetAssignment
-      WHERE AssigneeId = :userId AND PermissionSetId = :permissionSets[0].Id
+    List<PermissionSet> permissionSetsToAssign = new List<PermissionSet>();
+    permissionSetsToAssign.add(candidatePermissionSets[0]);
+
+    List<PermissionSet> promptTemplatePermissionSets = [
+      SELECT Id, Name, Label
+      FROM PermissionSet
+      WHERE
+        Name IN :PROMPT_TEMPLATE_PERMISSION_SET_NAMES
+        OR Label = :PROMPT_TEMPLATE_PERMISSION_SET_LABEL
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
 
-    if (!existingAssignments.isEmpty()) {
+    if (!promptTemplatePermissionSets.isEmpty()) {
+      permissionSetsToAssign.add(promptTemplatePermissionSets[0]);
+    }
+
+    insertMissingPermissionSetAssignments(userId, permissionSetsToAssign);
+  }
+
+  /**
+   * @description Inserts missing permission set assignments for a user.
+   * @param userId User receiving the permission sets.
+   * @param permissionSets Permission sets to assign.
+   */
+  private static void insertMissingPermissionSetAssignments(
+    Id userId,
+    List<PermissionSet> permissionSets
+  ) {
+    Set<Id> permissionSetIds = new Set<Id>();
+
+    for (PermissionSet permissionSetRecord : permissionSets) {
+      permissionSetIds.add(permissionSetRecord.Id);
+    }
+
+    if (permissionSetIds.isEmpty()) {
       return;
     }
 
-    PermissionSetAssignment assignment = new PermissionSetAssignment(
-      AssigneeId = userId,
-      PermissionSetId = permissionSets[0].Id
-    );
+    List<PermissionSetAssignment> existingAssignments = [
+      SELECT Id, PermissionSetId
+      FROM PermissionSetAssignment
+      WHERE AssigneeId = :userId AND PermissionSetId IN :permissionSetIds
+      WITH SYSTEM_MODE
+    ];
 
-    insert assignment;
+    Set<Id> alreadyAssignedPermissionSetIds = new Set<Id>();
+
+    for (PermissionSetAssignment existingAssignment : existingAssignments) {
+      alreadyAssignedPermissionSetIds.add(existingAssignment.PermissionSetId);
+    }
+
+    List<PermissionSetAssignment> assignmentsToInsert = new List<PermissionSetAssignment>();
+
+    for (Id permissionSetId : permissionSetIds) {
+      if (!alreadyAssignedPermissionSetIds.contains(permissionSetId)) {
+        assignmentsToInsert.add(
+          new PermissionSetAssignment(
+            AssigneeId = userId,
+            PermissionSetId = permissionSetId
+          )
+        );
+      }
+    }
+
+    if (!assignmentsToInsert.isEmpty()) {
+      Database.insert(assignmentsToInsert, AccessLevel.SYSTEM_MODE);
+    }
   }
 
   /**
@@ -356,6 +438,31 @@ public without sharing class CandidatePortalRegistrationController {
   }
 
   /**
+   * @description Builds a user-friendly DML error message.
+   * @param dmlException DML exception thrown during provisioning.
+   * @return Safe error message for the portal user.
+   */
+  private static String buildDmlErrorMessage(DmlException dmlException) {
+    if (dmlException.getNumDml() > 0) {
+      String statusCode = String.valueOf(dmlException.getDmlStatusCode(0));
+
+      if (statusCode == 'DUPLICATE_USERNAME') {
+        return 'An account already exists with this email.';
+      }
+
+      if (statusCode == 'DUPLICATE_VALUE') {
+        return 'A record already exists with the same information.';
+      }
+
+      if (statusCode == 'FIELD_INTEGRITY_EXCEPTION') {
+        return 'Some registration information is invalid. Please contact an administrator.';
+      }
+    }
+
+    return 'Unable to create your account. Please contact an administrator.';
+  }
+
+  /**
    * @description Queueable job that creates the Candidate__c profile after the portal user is created.
    */
   private class CandidateCreationJob implements Queueable {
@@ -400,12 +507,6 @@ public without sharing class CandidatePortalRegistrationController {
      * @param context Queueable execution context.
      */
     public void execute(QueueableContext context) {
-      if (!Schema.sObjectType.Candidate__c.isCreateable()) {
-        throw new AuraHandledException(
-          'Candidate creation is not allowed for the current context. Please contact an administrator.'
-        );
-      }
-
       Candidate__c candidate = new Candidate__c(
         FirstName__c = firstName,
         LastName__c = lastName,
@@ -417,7 +518,7 @@ public without sharing class CandidatePortalRegistrationController {
         User__c = userId
       );
 
-      insert candidate;
+      Database.insert(candidate, AccessLevel.SYSTEM_MODE);
     }
   }
 }
