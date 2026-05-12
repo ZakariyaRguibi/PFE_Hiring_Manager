@@ -5,14 +5,11 @@
  *              active application for the same job position. A candidate may
  *              reapply only if their previous application was Rejected or Withdrawn.
  *
-<<<<<<< feature/TF-014-hitl-filter-review
- *              Before update: HITL filter review — when an HR Manager changes
+ *              Before update: HITL filter review -- when an HR Manager changes
  *              Filter_Review_Status__c, stamps Filter_Reviewed_By__c and
  *              Filter_Reviewed_At__c. Blocks save if status is set to Rejected
  *              and Filter_Rejection_Reason__c is blank.
  *
-=======
->>>>>>> dev
  *              After insert: enqueues CVJobMatcherQueueable for each new
  *              application so the relevance score is computed asynchronously
  *              without blocking the candidate's submission transaction.
@@ -35,11 +32,8 @@ public with sharing class JobApplicationTriggerHandler {
   ) {
     if (operationType == System.TriggerOperation.BEFORE_INSERT) {
       preventDuplicateApplication(newList);
-<<<<<<< feature/TF-014-hitl-filter-review
     } else if (operationType == System.TriggerOperation.BEFORE_UPDATE) {
       stampFilterReview(newList, oldMap);
-=======
->>>>>>> dev
     } else if (operationType == System.TriggerOperation.AFTER_INSERT) {
       enqueueScoring(newList);
     }
@@ -97,7 +91,6 @@ public with sharing class JobApplicationTriggerHandler {
   }
 
   /**
-<<<<<<< feature/TF-014-hitl-filter-review
    * @description Stamps Filter_Reviewed_By__c and Filter_Reviewed_At__c when
    *              Filter_Review_Status__c changes to Approved or Rejected.
    *              Blocks save when status is Rejected and
@@ -135,8 +128,6 @@ public with sharing class JobApplicationTriggerHandler {
   }
 
   /**
-=======
->>>>>>> dev
    * @description Collects application Ids that have a position, then enqueues
    *              one CVJobMatcherQueueable per Id outside any loop to respect
    *              governor limits.
