@@ -1,0 +1,326 @@
+<template>
+  <section class="spontaneous-page">
+    <div class="header">
+      <p class="eyebrow">TalentForce Careers</p>
+      <h1>Spontaneous Application</h1>
+      <p class="subtitle">
+        Send us your profile even if there is no open position matching your
+        background right now. Our HR team will keep your profile in the talent
+        pool for future opportunities.
+      </p>
+    </div>
+
+    <template if:true={isLoading}>
+      <div class="state">Loading your candidate profile...</div>
+    </template>
+
+    <template if:true={isGuestUser}>
+      <div class="auth-message page-auth">
+        <h3>Authentication required</h3>
+        <p>
+          To submit a spontaneous application, please log in or create a
+          candidate account first.
+        </p>
+
+        <div class="auth-actions">
+          <button class="secondary-button" onclick={handleLogin}>Log in</button>
+
+          <button class="primary-button" onclick={handleRegister}>
+            Create account
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <template if:true={errorMessage}>
+      <div class="error-state">{errorMessage}</div>
+    </template>
+
+    <template if:true={showApplicationForm}>
+      <section class="application-card">
+        <!-- Upload step -->
+        <template if:true={isUploadStep}>
+          <div class="form-section">
+            <h3>Candidate information</h3>
+            <p class="section-help">
+              This information is linked to your candidate account and cannot be
+              edited here.
+            </p>
+
+            <div class="readonly-grid">
+              <div class="readonly-field">
+                <span>First Name</span>
+                <strong>{candidateProfile.firstName}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Last Name</span>
+                <strong>{candidateProfile.lastName}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Email</span>
+                <strong>{candidateProfile.email}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Phone</span>
+                <strong>{candidateProfile.phone}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Education Level</span>
+                <strong>{candidateProfile.educationLevel}</strong>
+              </div>
+
+              <div class="readonly-field">
+                <span>Years of Experience</span>
+                <strong>{candidateProfile.yearsOfExperience}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Application type</h3>
+
+            <div class="readonly-field full-width">
+              <span>Type</span>
+              <strong>Spontaneous Application</strong>
+            </div>
+
+            <p class="section-help">
+              No job position will be attached to this application. Your profile
+              will be kept for future opportunities.
+            </p>
+          </div>
+
+          <div class="form-section">
+            <h3>Documents</h3>
+            <p class="section-help">
+              You can reuse documents already uploaded to your candidate
+              profile, or upload a new version.
+            </p>
+
+            <div class="document-choice-card">
+              <h4>CV</h4>
+
+              <template if:true={hasExistingFiles}>
+                <lightning-radio-group
+                  name="cvMode"
+                  label="CV source"
+                  options={cvModeOptions}
+                  value={cvMode}
+                  type="radio"
+                  onchange={handleCvModeChange}
+                >
+                </lightning-radio-group>
+              </template>
+
+              <template if:true={isCvExistingMode}>
+                <template if:true={hasExistingFiles}>
+                  <lightning-combobox
+                    class="review-input"
+                    label="Select existing CV"
+                    placeholder="Choose an existing file"
+                    options={candidateFileOptions}
+                    value={selectedCvContentDocumentId}
+                    onchange={handleExistingCvChange}
+                  >
+                  </lightning-combobox>
+                </template>
+
+                <template if:false={hasExistingFiles}>
+                  <p class="section-help">
+                    No existing documents found. Please upload a new CV.
+                  </p>
+                </template>
+              </template>
+
+              <template if:true={isCvUploadMode}>
+                <label class="upload-box single-upload">
+                  <span>Upload new CV</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onchange={handleCvChange}
+                  />
+
+                  <template if:true={cvFileName}>
+                    <p class="file-name">{cvFileName}</p>
+                  </template>
+                </label>
+              </template>
+            </div>
+
+            <div class="document-choice-card">
+              <h4>Motivation Letter</h4>
+
+              <template if:true={hasExistingFiles}>
+                <lightning-radio-group
+                  name="motivationLetterMode"
+                  label="Motivation letter source"
+                  options={motivationLetterModeOptions}
+                  value={motivationLetterMode}
+                  type="radio"
+                  onchange={handleMotivationLetterModeChange}
+                >
+                </lightning-radio-group>
+              </template>
+
+              <template if:true={isMotivationExistingMode}>
+                <template if:true={hasExistingFiles}>
+                  <lightning-combobox
+                    class="review-input"
+                    label="Select existing motivation letter"
+                    placeholder="Choose an existing file"
+                    options={candidateFileOptions}
+                    value={selectedMotivationLetterContentDocumentId}
+                    onchange={handleExistingMotivationLetterChange}
+                  >
+                  </lightning-combobox>
+                </template>
+
+                <template if:false={hasExistingFiles}>
+                  <p class="section-help">
+                    No existing documents found. You can continue without a
+                    motivation letter or upload a new one.
+                  </p>
+                </template>
+              </template>
+
+              <template if:true={isMotivationUploadMode}>
+                <label class="upload-box single-upload">
+                  <span>Upload new motivation letter</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onchange={handleMotivationLetterChange}
+                  />
+
+                  <template if:true={motivationLetterFileName}>
+                    <p class="file-name">{motivationLetterFileName}</p>
+                  </template>
+                </label>
+              </template>
+            </div>
+
+            <template if:true={uploadMessage}>
+              <p class="success-inline">{uploadMessage}</p>
+            </template>
+          </div>
+        </template>
+
+        <!-- Review step -->
+        <template if:true={isReviewStep}>
+          <div class="form-section">
+            <h3>Extracted CV information</h3>
+            <p class="section-help">
+              Please review the information extracted from your CV. You can
+              correct it before submitting your spontaneous application.
+            </p>
+
+            <lightning-textarea
+              class="review-input"
+              label="Extracted Skills"
+              data-field="skills"
+              value={extractedSkills}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-textarea>
+
+            <lightning-textarea
+              class="review-input"
+              label="Extracted Keywords"
+              data-field="keywords"
+              value={extractedKeywords}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-textarea>
+
+            <lightning-combobox
+              class="review-input"
+              label="Extracted Education"
+              data-field="education"
+              value={extractedEducation}
+              options={educationOptions}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-combobox>
+
+            <lightning-input
+              class="review-input"
+              type="number"
+              min="0"
+              label="Extracted Experience"
+              data-field="experience"
+              value={extractedExperience}
+              onchange={handleExtractedFieldChange}
+            >
+            </lightning-input>
+
+            <template if:true={uploadMessage}>
+              <p class="success-inline">{uploadMessage}</p>
+            </template>
+
+            <template if:true={submissionMessage}>
+              <p class="success-inline">{submissionMessage}</p>
+            </template>
+          </div>
+        </template>
+
+        <!-- Success step -->
+        <template if:true={isSuccessStep}>
+          <div class="success-panel">
+            <h3>Spontaneous application submitted successfully.</h3>
+
+            <p>
+              Your application reference is
+              <strong>{createdJobApplicationName}</strong>.
+            </p>
+
+            <p>
+              Your profile is now available in the talent pool for future
+              opportunities.
+            </p>
+
+            <p class="redirect-message">Redirecting to My Applications...</p>
+          </div>
+        </template>
+
+        <div class="form-actions">
+          <template if:true={isReviewStep}>
+            <button class="secondary-button" onclick={handleBackToUpload}>
+              Back
+            </button>
+          </template>
+
+          <template if:true={isUploadStep}>
+            <button
+              class="primary-button"
+              onclick={handleNext}
+              disabled={isNextDisabled}
+            >
+              {nextButtonLabel}
+            </button>
+          </template>
+
+          <template if:true={isReviewStep}>
+            <button
+              class="primary-button"
+              onclick={handleFinalSubmit}
+              disabled={isSubmitDisabled}
+            >
+              <template if:true={isSubmittingApplication}>
+                Submitting...
+              </template>
+
+              <template if:false={isSubmittingApplication}>
+                Submit spontaneous application
+              </template>
+            </button>
+          </template>
+        </div>
+      </section>
+    </template>
+  </section>
+</template>
