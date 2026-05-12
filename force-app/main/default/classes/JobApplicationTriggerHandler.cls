@@ -5,6 +5,11 @@
  *              active application for the same job position. A candidate may
  *              reapply only if their previous application was Rejected or Withdrawn.
  *
+ *              Before update: HITL filter review -- when an HR Manager changes
+ *              Filter_Review_Status__c, stamps Filter_Reviewed_By__c and
+ *              Filter_Reviewed_At__c. Blocks save if status is set to Rejected
+ *              and Filter_Rejection_Reason__c is blank.
+ *
  *              After insert: enqueues CVJobMatcherQueueable for each new
  *              application so the relevance score is computed asynchronously
  *              without blocking the candidate's submission transaction.
@@ -27,6 +32,8 @@ public with sharing class JobApplicationTriggerHandler {
   ) {
     if (operationType == System.TriggerOperation.BEFORE_INSERT) {
       preventDuplicateApplication(newList);
+    } else if (operationType == System.TriggerOperation.BEFORE_UPDATE) {
+      stampFilterReview(newList, oldMap);
     } else if (operationType == System.TriggerOperation.AFTER_INSERT) {
       enqueueScoring(newList);
     }
@@ -79,6 +86,43 @@ public with sharing class JobApplicationTriggerHandler {
         app.addError(
           'You already have an active application for this position.'
         );
+      }
+    }
+  }
+
+  /**
+   * @description Stamps Filter_Reviewed_By__c and Filter_Reviewed_At__c when
+   *              Filter_Review_Status__c changes to Approved or Rejected.
+   *              Blocks save when status is Rejected and
+   *              Filter_Rejection_Reason__c is blank.
+   * @param newApplications List of Job_Application__c records being updated
+   * @param oldMap          Previous record state
+   * @author Marwane Romani
+   */
+  private static void stampFilterReview(
+    List<Job_Application__c> newApplications,
+    Map<Id, Job_Application__c> oldMap
+  ) {
+    for (Job_Application__c app : newApplications) {
+      Job_Application__c old = oldMap.get(app.Id);
+      if (app.Filter_Review_Status__c == old.Filter_Review_Status__c) {
+        continue;
+      }
+      if (
+        app.Filter_Review_Status__c == 'Approved' ||
+        app.Filter_Review_Status__c == 'Rejected'
+      ) {
+        if (
+          app.Filter_Review_Status__c == 'Rejected' &&
+          String.isBlank(app.Filter_Rejection_Reason__c)
+        ) {
+          app.Filter_Rejection_Reason__c.addError(
+            'A rejection reason is required when rejecting an application.'
+          );
+          continue;
+        }
+        app.Filter_Reviewed_By__c = UserInfo.getUserId();
+        app.Filter_Reviewed_At__c = Datetime.now();
       }
     }
   }
