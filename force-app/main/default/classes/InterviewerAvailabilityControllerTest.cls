@@ -93,26 +93,22 @@ private class InterviewerAvailabilityControllerTest {
     return Date.newInstance(2030, 1, 7);
   }
 
-  // ── getMyWindows ──────────────────────────────────────────────────────────
-
-  @IsTest
-  static void getMyWindows_returnsOwnWindows() {
+@IsTest
+  static void getMyWindowsReturnsOwnWindows() {
     createWindow('Monday', 8, 12);
     createWindow('Friday', 14, 17);
 
     Test.startTest();
-    List<Availability_Slot__c> windows = InterviewerAvailabilityController.getMyWindows();
+    List<Availability_Slot__c> windows = InterviewerAvailabilityController.getMyWindows(null);
     Test.stopTest();
 
     System.assertEquals(2, windows.size(), 'Should return 2 windows');
   }
 
-  // ── saveWindow ────────────────────────────────────────────────────────────
-
-  @IsTest
-  static void saveWindow_insertsNewWindow() {
+@IsTest
+  static void saveWindowInsertsNewWindow() {
     Test.startTest();
-    InterviewerAvailabilityController.saveWindow('Wednesday', '09:00', '11:00');
+    InterviewerAvailabilityController.saveWindow('Wednesday', '09:00', '11:00', null, true);
     Test.stopTest();
 
     List<Availability_Slot__c> inDb = [
@@ -127,10 +123,10 @@ private class InterviewerAvailabilityControllerTest {
   }
 
   @IsTest
-  static void saveWindow_throwsOnEndBeforeStart() {
+  static void saveWindowThrowsOnEndBeforeStart() {
     Boolean threw = false;
     try {
-      InterviewerAvailabilityController.saveWindow('Monday', '12:00', '09:00');
+      InterviewerAvailabilityController.saveWindow('Monday', '12:00', '09:00', null, true);
     } catch (AuraHandledException e) {
       threw = true;
     }
@@ -138,21 +134,19 @@ private class InterviewerAvailabilityControllerTest {
   }
 
   @IsTest
-  static void saveWindow_throwsOnDuplicate() {
+  static void saveWindowThrowsOnDuplicate() {
     createWindow('Tuesday', 10, 12);
     Boolean threw = false;
     try {
-      InterviewerAvailabilityController.saveWindow('Tuesday', '10:00', '12:00');
+      InterviewerAvailabilityController.saveWindow('Tuesday', '10:00', '12:00', null, true);
     } catch (AuraHandledException e) {
       threw = true;
     }
     System.assert(threw, 'Should throw for duplicate window');
   }
 
-  // ── deleteWindow ──────────────────────────────────────────────────────────
-
-  @IsTest
-  static void deleteWindow_removesSlot() {
+@IsTest
+  static void deleteWindowRemovesSlot() {
     Availability_Slot__c win = createWindow('Thursday', 13, 15);
     Test.startTest();
     InterviewerAvailabilityController.deleteWindow(win.Id);
@@ -164,10 +158,8 @@ private class InterviewerAvailabilityControllerTest {
     );
   }
 
-  // ── blockWindowForDate / unblockWindowForDate ─────────────────────────────
-
-  @IsTest
-  static void blockAndUnblock_createsAndDeletesBlockRecord() {
+@IsTest
+  static void blockAndUnblockCreatesAndDeletesBlockRecord() {
     Availability_Slot__c win = createWindow('Monday', 9, 11);
     Date monday = testMonday();
 
@@ -205,7 +197,7 @@ private class InterviewerAvailabilityControllerTest {
   }
 
   @IsTest
-  static void blockWindowForDate_idempotent() {
+  static void blockWindowForDateIdempotent() {
     Availability_Slot__c win = createWindow('Friday', 14, 16);
     Date friday = testMonday().addDays(4);
 
@@ -235,10 +227,8 @@ private class InterviewerAvailabilityControllerTest {
     );
   }
 
-  // ── getMyScheduledInterviews ──────────────────────────────────────────────
-
-  @IsTest
-  static void getMyScheduledInterviews_returnsScheduledForWeek() {
+@IsTest
+  static void getMyScheduledInterviewsReturnsScheduledForWeek() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 60);
     Candidate__c candidate = createCandidate();
@@ -278,7 +268,7 @@ private class InterviewerAvailabilityControllerTest {
   }
 
   @IsTest
-  static void getMyScheduledInterviews_excludesCancelled() {
+  static void getMyScheduledInterviewsExcludesCancelled() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 60);
     Candidate__c candidate = createCandidate();
@@ -310,7 +300,7 @@ private class InterviewerAvailabilityControllerTest {
   }
 
   @IsTest
-  static void getMyScheduledInterviews_emptyForDifferentWeek() {
+  static void getMyScheduledInterviewsEmptyForDifferentWeek() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 60);
     Candidate__c candidate = createCandidate();

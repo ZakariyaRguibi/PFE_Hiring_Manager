@@ -4,31 +4,21 @@
  */
 public inherited sharing class AvailabilitySlotTriggerHandler {
   /**
-   * @description Entry point called by the trigger. Delegates to overlap validation.
+   * @description Entry point called by the trigger. Routes to the appropriate handler.
+   * @param operationType the trigger operation type
    * @param newList records being inserted or updated
    * @param oldMap previous record state (null on insert)
    */
-  public static void handleBeforeSave(
+  public static void handle(
+    System.TriggerOperation operationType,
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
-    validateNoOverlappingSlots(newList, oldMap);
-  }
-
-  /**
-   * @description After-save entry point. Retries pending interview invitation creation
-   * when a valid recurring availability window is added or reactivated.
-   * @param newList records inserted or updated
-   * @param oldMap previous record state (null on insert)
-   */
-  public static void handleAfterSave(
-    List<Availability_Slot__c> newList,
-    Map<Id, Availability_Slot__c> oldMap
-  ) {
-    JobApplicationInterviewSchedulingService.handleAvailabilityAfterSave(
-      newList,
-      oldMap
-    );
+    switch on operationType {
+      when BEFORE_INSERT, BEFORE_UPDATE {
+        validateNoOverlappingSlots(newList, oldMap);
+      }
+    }
   }
 
   /**
