@@ -93,22 +93,30 @@ private class InterviewerAvailabilityControllerTest {
     return Date.newInstance(2030, 1, 7);
   }
 
-@IsTest
+  @IsTest
   static void getMyWindowsReturnsOwnWindows() {
     createWindow('Monday', 8, 12);
     createWindow('Friday', 14, 17);
 
     Test.startTest();
-    List<Availability_Slot__c> windows = InterviewerAvailabilityController.getMyWindows(null);
+    List<Availability_Slot__c> windows = InterviewerAvailabilityController.getMyWindows(
+      null
+    );
     Test.stopTest();
 
     System.assertEquals(2, windows.size(), 'Should return 2 windows');
   }
 
-@IsTest
+  @IsTest
   static void saveWindowInsertsNewWindow() {
     Test.startTest();
-    InterviewerAvailabilityController.saveWindow('Wednesday', '09:00', '11:00', null, true);
+    InterviewerAvailabilityController.saveWindow(
+      'Wednesday',
+      '09:00',
+      '11:00',
+      null,
+      true
+    );
     Test.stopTest();
 
     List<Availability_Slot__c> inDb = [
@@ -126,7 +134,13 @@ private class InterviewerAvailabilityControllerTest {
   static void saveWindowThrowsOnEndBeforeStart() {
     Boolean threw = false;
     try {
-      InterviewerAvailabilityController.saveWindow('Monday', '12:00', '09:00', null, true);
+      InterviewerAvailabilityController.saveWindow(
+        'Monday',
+        '12:00',
+        '09:00',
+        null,
+        true
+      );
     } catch (AuraHandledException e) {
       threw = true;
     }
@@ -138,14 +152,20 @@ private class InterviewerAvailabilityControllerTest {
     createWindow('Tuesday', 10, 12);
     Boolean threw = false;
     try {
-      InterviewerAvailabilityController.saveWindow('Tuesday', '10:00', '12:00', null, true);
+      InterviewerAvailabilityController.saveWindow(
+        'Tuesday',
+        '10:00',
+        '12:00',
+        null,
+        true
+      );
     } catch (AuraHandledException e) {
       threw = true;
     }
     System.assert(threw, 'Should throw for duplicate window');
   }
 
-@IsTest
+  @IsTest
   static void deleteWindowRemovesSlot() {
     Availability_Slot__c win = createWindow('Thursday', 13, 15);
     Test.startTest();
@@ -158,7 +178,7 @@ private class InterviewerAvailabilityControllerTest {
     );
   }
 
-@IsTest
+  @IsTest
   static void blockAndUnblockCreatesAndDeletesBlockRecord() {
     Availability_Slot__c win = createWindow('Monday', 9, 11);
     Date monday = testMonday();
@@ -227,7 +247,7 @@ private class InterviewerAvailabilityControllerTest {
     );
   }
 
-@IsTest
+  @IsTest
   static void getMyScheduledInterviewsReturnsScheduledForWeek() {
     Job_Position__c pos = createPosition();
     Interview_Stage__c stage = createStage(pos.Id, 60);
