@@ -8,11 +8,27 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
    * @param newList records being inserted or updated
    * @param oldMap previous record state (null on insert)
    */
-  public static void handle(
+  public static void handleBeforeSave(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
     validateNoOverlappingSlots(newList, oldMap);
+  }
+
+  /**
+   * @description After-save entry point. Retries pending interview invitation creation
+   * when a valid recurring availability window is added or reactivated.
+   * @param newList records inserted or updated
+   * @param oldMap previous record state (null on insert)
+   */
+  public static void handleAfterSave(
+    List<Availability_Slot__c> newList,
+    Map<Id, Availability_Slot__c> oldMap
+  ) {
+    JobApplicationInterviewSchedulingService.handleAvailabilityAfterSave(
+      newList,
+      oldMap
+    );
   }
 
   /**
@@ -71,10 +87,18 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
       }
     }
     return [
-      SELECT Id, Interviewer__c, Start_DateTime__c, End_DateTime__c
+      SELECT
+        Id,
+        Interviewer__c,
+        Start_DateTime__c,
+        End_DateTime__c,
+        Is_Recurring__c,
+        Is_Blocked__c,
+        Is_Booked__c
       FROM Availability_Slot__c
       WHERE
         Interviewer__c IN :interviewerIds
+        AND Deactivated_Date__c = NULL
         AND Start_DateTime__c < :maxEnd
         AND End_DateTime__c > :minStart
       WITH SYSTEM_MODE
@@ -138,6 +162,10 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
       if (ex.Id == slot.Id) {
         continue;
       }
+      if (isAllowedBookedSlotOverlap(slot, ex)) {
+        continue;
+      }
+
       if (
         ex.Start_DateTime__c < slot.End_DateTime__c &&
         ex.End_DateTime__c > slot.Start_DateTime__c
@@ -148,5 +176,19 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
         return;
       }
     }
+  }
+
+  /**
+   * @description Allows an exact booked appointment slot to sit inside its parent recurring availability window.
+   * Booked slots still conflict with other booked slots, blocked slots, and non-recurring exact slots.
+   */
+  private static Boolean isAllowedBookedSlotOverlap(
+    Availability_Slot__c slot,
+    Availability_Slot__c existingSlot
+  ) {
+    return slot.Is_Booked__c == true &&
+      existingSlot.Is_Recurring__c == true &&
+      existingSlot.Is_Blocked__c == false &&
+      existingSlot.Is_Booked__c != true;
   }
 }

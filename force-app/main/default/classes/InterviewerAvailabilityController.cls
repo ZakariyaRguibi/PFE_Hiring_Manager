@@ -1,10 +1,11 @@
 /**
- * @description LWC controller for interviewer self-service availability management.
- * Handles CRUD on recurring availability windows, date-specific blocking, and scheduled interview retrieval.
+ * @description Controller for the interviewer availability management LWC.
+ * Handles CRUD operations on Availability_Slot__c for the current user,
+ * including recurring/one-time windows, blocking, and scheduled interview retrieval.
  */
-public with sharing class InterviewerAvailabilityController {
+public without sharing class InterviewerAvailabilityController {
   /**
-   * @description DTO for scheduled interview data displayed in the availability planner.
+   * @description DTO for scheduled interviews displayed on the availability calendar.
    */
   public class ScheduledInterviewDTO {
     @AuraEnabled
@@ -28,11 +29,26 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Returns the current user's recurring availability windows.
-   * @return list of Availability_Slot__c records for the running user
+   * @description Returns availability windows for the current user within the given week.
+   * Includes recurring slots (filtered by Effective_From__c and Deactivated_Date__c)
+   * and one-time non-blocked slots whose start falls within the week range.
+   * @param weekStart ISO date string for the Monday of the target week (nullable)
+   * @return list of Availability_Slot__c records ordered by day and start time
    */
-  @AuraEnabled(cacheable=true)
-  public static List<Availability_Slot__c> getMyWindows() {
+  @AuraEnabled
+  public static List<Availability_Slot__c> getMyWindows(String weekStart) {
+    Date startDate = String.isBlank(weekStart)
+      ? AvailabilitySlotService.currentMonday()
+      : Date.valueOf(weekStart);
+    Date endDate = startDate.addDays(7);
+    DateTime weekStartDt = DateTime.newInstanceGmt(
+      startDate,
+      Time.newInstance(0, 0, 0, 0)
+    );
+    DateTime weekEndDt = DateTime.newInstanceGmt(
+      endDate,
+      Time.newInstance(0, 0, 0, 0)
+    );
     return [
       SELECT
         Id,
@@ -41,18 +57,30 @@ public with sharing class InterviewerAvailabilityController {
         Start_DateTime__c,
         End_DateTime__c,
         Is_Recurring__c,
-        Is_Blocked__c
+        Is_Blocked__c,
+        Deactivated_Date__c
       FROM Availability_Slot__c
-      WHERE Interviewer__c = :UserInfo.getUserId() AND Is_Recurring__c = TRUE
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND ((Is_Recurring__c = TRUE
+        AND (Deactivated_Date__c = NULL
+        OR Deactivated_Date__c >= :endDate)
+        AND (Effective_From__c = NULL
+        OR Effective_From__c <= :startDate))
+        OR (Is_Recurring__c = FALSE
+        AND Is_Blocked__c = FALSE
+        AND Deactivated_Date__c = NULL
+        AND Start_DateTime__c >= :weekStartDt
+        AND Start_DateTime__c < :weekEndDt))
       WITH USER_MODE
       ORDER BY Day_Of_Week__c, Start_DateTime__c
     ];
   }
 
   /**
-   * @description Toggles the Is_Blocked__c flag on an availability window owned by the current user.
+   * @description Toggles the Is_Blocked__c flag on an availability slot.
    * @param slotId the Availability_Slot__c record Id
-   * @return the new Is_Blocked__c value
+   * @return the new blocked state
    */
   @AuraEnabled
   public static Boolean toggleWindowBlock(Id slotId) {
@@ -79,16 +107,22 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Creates a new recurring availability window for the current user.
-   * @param dayOfWeek day name (e.g. "Monday")
-   * @param startTime start time in HH:mm format
-   * @param endTime end time in HH:mm format
+   * @description Creates an availability window (recurring or one-time) for the current user.
+   * Handles duplicate detection, cross-type overlap merging, same-type encompass merging,
+   * and partial overlap blocking with descriptive error messages.
+   * @param dayOfWeek day name (Monday–Sunday)
+   * @param startTime start time as HH:mm string
+   * @param endTime end time as HH:mm string
+   * @param weekStart ISO date string for the Monday of the target week (nullable)
+   * @param isRecurring true for recurring, false for one-time
    */
   @AuraEnabled
   public static void saveWindow(
     String dayOfWeek,
     String startTime,
-    String endTime
+    String endTime,
+    String weekStart,
+    Boolean isRecurring
   ) {
     try {
       if (String.isBlank(dayOfWeek)) {
@@ -125,37 +159,13 @@ public with sharing class InterviewerAvailabilityController {
       Integer offset = dayOffset.containsKey(dayOfWeek)
         ? dayOffset.get(dayOfWeek)
         : 0;
-      Date baseDate = Date.newInstance(2000, 1, 3).addDays(offset);
-      DateTime startDt = DateTime.newInstance(baseDate, startT);
-      DateTime endDt = DateTime.newInstance(baseDate, endT);
+      Boolean recurring = (isRecurring == null || isRecurring);
 
-      if (endDt <= startDt) {
-        throw new AuraHandledException('End time must be after start time.');
+      if (recurring) {
+        saveRecurringWindow(dayOfWeek, startT, endT, offset, weekStart);
+      } else {
+        saveOneTimeWindow(dayOfWeek, startT, endT, offset, weekStart);
       }
-
-      List<Availability_Slot__c> duplicates = [
-        SELECT Id
-        FROM Availability_Slot__c
-        WHERE
-          Interviewer__c = :UserInfo.getUserId()
-          AND Is_Recurring__c = TRUE
-          AND Day_Of_Week__c = :dayOfWeek
-          AND Start_DateTime__c = :startDt
-        WITH USER_MODE
-      ];
-      if (!duplicates.isEmpty()) {
-        throw new AuraHandledException(
-          'You already have a window on ' + dayOfWeek + ' at this start time.'
-        );
-      }
-
-      insert as user new Availability_Slot__c(
-        Interviewer__c = UserInfo.getUserId(),
-        Day_Of_Week__c = dayOfWeek,
-        Start_DateTime__c = startDt,
-        End_DateTime__c = endDt,
-        Is_Recurring__c = true
-      );
     } catch (AuraHandledException e) {
       throw e;
     } catch (DmlException e) {
@@ -170,14 +180,14 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Deletes a recurring availability window owned by the current user.
-   * @param slotId the Availability_Slot__c record Id to delete
+   * @description Soft-deletes an availability window by setting Deactivated_Date__c.
+   * @param slotId the Availability_Slot__c record Id to deactivate
    */
   @AuraEnabled
   public static void deleteWindow(Id slotId) {
     try {
       Availability_Slot__c slot = [
-        SELECT Id, Interviewer__c
+        SELECT Id, Interviewer__c, Deactivated_Date__c
         FROM Availability_Slot__c
         WHERE Id = :slotId
         WITH USER_MODE
@@ -185,7 +195,8 @@ public with sharing class InterviewerAvailabilityController {
       if (slot.Interviewer__c != UserInfo.getUserId()) {
         throw new AuraHandledException('You can only delete your own windows.');
       }
-      delete as user slot;
+      slot.Deactivated_Date__c = Date.today();
+      update as user slot;
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -196,10 +207,10 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Creates a one-off block record for a specific date, preventing scheduling on that window.
-   * Idempotent: does nothing if a block already exists.
-   * @param windowId the recurring Availability_Slot__c to block
-   * @param targetDate ISO date string for the date to block
+   * @description Creates a one-time block record for a specific date, preventing
+   * a recurring window from being considered available on that day.
+   * @param windowId the parent recurring Availability_Slot__c Id
+   * @param targetDate ISO date string for the day to block
    */
   @AuraEnabled
   public static void blockWindowForDate(Id windowId, String targetDate) {
@@ -256,9 +267,10 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Removes the one-off block record for a specific date, re-enabling scheduling.
-   * @param windowId the recurring Availability_Slot__c to unblock
-   * @param targetDate ISO date string for the date to unblock
+   * @description Removes a one-time block record for a specific date, restoring
+   * the recurring window availability for that day.
+   * @param windowId the parent recurring Availability_Slot__c Id
+   * @param targetDate ISO date string for the day to unblock
    */
   @AuraEnabled
   public static void unblockWindowForDate(Id windowId, String targetDate) {
@@ -303,8 +315,8 @@ public with sharing class InterviewerAvailabilityController {
   }
 
   /**
-   * @description Returns the current user's non-cancelled scheduled interviews for a given week.
-   * @param weekStart ISO date string for the Monday of the target week (nullable, defaults to current week)
+   * @description Returns scheduled interviews for the current user within the given week.
+   * @param weekStart ISO date string for the Monday of the target week (nullable)
    * @return list of ScheduledInterviewDTO sorted by scheduled time
    */
   @AuraEnabled
@@ -376,5 +388,220 @@ public with sharing class InterviewerAvailabilityController {
         'Could not load scheduled interviews: ' + e.getMessage()
       );
     }
+  }
+
+  // ── Private helpers ──────────────────────────────────────────────────────
+
+  private static void saveRecurringWindow(
+    String dayOfWeek,
+    Time startT,
+    Time endT,
+    Integer offset,
+    String weekStart
+  ) {
+    Date baseDate = Date.newInstance(2000, 1, 3).addDays(offset);
+    DateTime startDt = DateTime.newInstance(baseDate, startT);
+    DateTime endDt = DateTime.newInstance(baseDate, endT);
+
+    if (endDt <= startDt) {
+      throw new AuraHandledException('End time must be after start time.');
+    }
+
+    Date effectiveFrom = String.isBlank(weekStart)
+      ? AvailabilitySlotService.currentMonday()
+      : Date.valueOf(weekStart);
+
+    // Exact duplicate check (same day, same start, same end)
+    List<Availability_Slot__c> duplicates = [
+      SELECT Id, Effective_From__c
+      FROM Availability_Slot__c
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND Is_Recurring__c = TRUE
+        AND Deactivated_Date__c = NULL
+        AND Day_Of_Week__c = :dayOfWeek
+        AND Start_DateTime__c = :startDt
+        AND End_DateTime__c = :endDt
+      WITH USER_MODE
+    ];
+    if (!duplicates.isEmpty()) {
+      Availability_Slot__c existing = duplicates[0];
+      if (
+        existing.Effective_From__c != null &&
+        existing.Effective_From__c > effectiveFrom
+      ) {
+        existing.Effective_From__c = effectiveFrom;
+        update as user existing;
+        return;
+      }
+      throw new AuraHandledException(
+        'You already have a window on ' + dayOfWeek + ' at this start time.'
+      );
+    }
+
+    // Cross-type: recurring supersedes overlapping one-time slots — soft-delete them
+    List<Availability_Slot__c> toDeactivate = new List<Availability_Slot__c>();
+    for (Availability_Slot__c ot : [
+      SELECT Id, Start_DateTime__c, End_DateTime__c
+      FROM Availability_Slot__c
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND Is_Recurring__c = FALSE
+        AND Is_Blocked__c = FALSE
+        AND Deactivated_Date__c = NULL
+        AND Day_Of_Week__c = :dayOfWeek
+      WITH USER_MODE
+    ]) {
+      Time otS = Time.newInstance(
+        ot.Start_DateTime__c.hourGmt(),
+        ot.Start_DateTime__c.minuteGmt(),
+        0,
+        0
+      );
+      Time otE = Time.newInstance(
+        ot.End_DateTime__c.hourGmt(),
+        ot.End_DateTime__c.minuteGmt(),
+        0,
+        0
+      );
+      if (startT < otE && endT > otS) {
+        ot.Deactivated_Date__c = Date.today();
+        toDeactivate.add(ot);
+      }
+    }
+    if (!toDeactivate.isEmpty()) {
+      update as user toDeactivate;
+    }
+
+    // Same-type: deactivate recurring slots fully encompassed by the new one
+    List<Availability_Slot__c> encompassed = [
+      SELECT Id
+      FROM Availability_Slot__c
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND Is_Recurring__c = TRUE
+        AND Deactivated_Date__c = NULL
+        AND Day_Of_Week__c = :dayOfWeek
+        AND Start_DateTime__c >= :startDt
+        AND End_DateTime__c <= :endDt
+      WITH USER_MODE
+    ];
+    for (Availability_Slot__c ol : encompassed) {
+      ol.Deactivated_Date__c = Date.today();
+    }
+    if (!encompassed.isEmpty()) {
+      update as user encompassed;
+    }
+
+    // Check for remaining partial overlaps (old slot is bigger)
+    List<Availability_Slot__c> remaining = [
+      SELECT Start_DateTime__c, End_DateTime__c, Effective_From__c
+      FROM Availability_Slot__c
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND Is_Recurring__c = TRUE
+        AND Deactivated_Date__c = NULL
+        AND Day_Of_Week__c = :dayOfWeek
+        AND Start_DateTime__c < :endDt
+        AND End_DateTime__c > :startDt
+      WITH USER_MODE
+    ];
+    if (!remaining.isEmpty()) {
+      Availability_Slot__c c = remaining[0];
+      String cS =
+        String.valueOf(c.Start_DateTime__c.hourGmt()).leftPad(2, '0') +
+        ':' +
+        String.valueOf(c.Start_DateTime__c.minuteGmt()).leftPad(2, '0');
+      String cE =
+        String.valueOf(c.End_DateTime__c.hourGmt()).leftPad(2, '0') +
+        ':' +
+        String.valueOf(c.End_DateTime__c.minuteGmt()).leftPad(2, '0');
+      String weekInfo = c.Effective_From__c != null
+        ? ' (effective from week of ' +
+          String.valueOf(c.Effective_From__c) +
+          ')'
+        : '';
+      throw new AuraHandledException(
+        'Overlaps with existing ' +
+          dayOfWeek +
+          ' ' +
+          cS +
+          ' – ' +
+          cE +
+          weekInfo +
+          '. Create a window that fully covers it to replace it.'
+      );
+    }
+
+    insert as user new Availability_Slot__c(
+      Interviewer__c = UserInfo.getUserId(),
+      Day_Of_Week__c = dayOfWeek,
+      Start_DateTime__c = startDt,
+      End_DateTime__c = endDt,
+      Is_Recurring__c = true,
+      Effective_From__c = effectiveFrom
+    );
+  }
+
+  private static void saveOneTimeWindow(
+    String dayOfWeek,
+    Time startT,
+    Time endT,
+    Integer offset,
+    String weekStart
+  ) {
+    Date weekStartDate = String.isBlank(weekStart)
+      ? AvailabilitySlotService.currentMonday()
+      : Date.valueOf(weekStart);
+    Date actualDate = weekStartDate.addDays(offset);
+    DateTime startDt = DateTime.newInstanceGmt(actualDate, startT);
+    DateTime endDt = DateTime.newInstanceGmt(actualDate, endT);
+
+    if (endDt <= startDt) {
+      throw new AuraHandledException('End time must be after start time.');
+    }
+
+    // Cross-type: block if a recurring slot overlaps on this day for this week
+    Date weekEndDate = weekStartDate.addDays(7);
+    for (Availability_Slot__c rec : [
+      SELECT Start_DateTime__c, End_DateTime__c
+      FROM Availability_Slot__c
+      WHERE
+        Interviewer__c = :UserInfo.getUserId()
+        AND Is_Recurring__c = TRUE
+        AND (Deactivated_Date__c = NULL
+        OR Deactivated_Date__c >= :weekEndDate)
+        AND (Effective_From__c = NULL
+        OR Effective_From__c <= :weekStartDate)
+        AND Day_Of_Week__c = :dayOfWeek
+      WITH USER_MODE
+    ]) {
+      Time recS = Time.newInstance(
+        rec.Start_DateTime__c.hourGmt(),
+        rec.Start_DateTime__c.minuteGmt(),
+        0,
+        0
+      );
+      Time recE = Time.newInstance(
+        rec.End_DateTime__c.hourGmt(),
+        rec.End_DateTime__c.minuteGmt(),
+        0,
+        0
+      );
+      if (startT < recE && endT > recS) {
+        throw new AuraHandledException(
+          'A recurring window on ' + dayOfWeek + ' already covers this time.'
+        );
+      }
+    }
+
+    insert as user new Availability_Slot__c(
+      Interviewer__c = UserInfo.getUserId(),
+      Day_Of_Week__c = dayOfWeek,
+      Start_DateTime__c = startDt,
+      End_DateTime__c = endDt,
+      Is_Recurring__c = false,
+      Is_Blocked__c = false
+    );
   }
 }
