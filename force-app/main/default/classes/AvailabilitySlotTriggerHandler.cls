@@ -33,6 +33,27 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
     handleBeforeSave(newList, oldMap);
   }
 
+  public static void handleAfterSave(
+    List<Availability_Slot__c> newList,
+    Map<Id, Availability_Slot__c> oldMap
+  ) {
+    if (skipSchedulingRetry == true) {
+      return;
+    }
+
+    JobApplicationInterviewSchedulingService.handleAvailabilityAfterSave(
+      newList,
+      oldMap
+    );
+  }
+
+  public static void handle(
+    List<Availability_Slot__c> newList,
+    Map<Id, Availability_Slot__c> oldMap
+  ) {
+    handleBeforeSave(newList, oldMap);
+  }
+
   /**
    * @description Collects slots whose interviewer or time window changed.
    * @param newList records being inserted or updated
