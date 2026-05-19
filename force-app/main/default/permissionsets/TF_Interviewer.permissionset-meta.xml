@@ -49,11 +49,6 @@
         <field>Availability_Slot__c.Is_Recurring__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>Interview_Stage__c.Duration_Minutes__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>TF Interviewer</label>
     <objectPermissions>
