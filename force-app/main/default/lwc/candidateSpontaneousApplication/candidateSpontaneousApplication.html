@@ -1,132 +1,44 @@
 <template>
-  <section class="jobs-page">
+  <section class="spontaneous-page">
     <div class="header">
       <p class="eyebrow">TalentForce Careers</p>
-      <h1>Open Positions</h1>
+      <h1>Spontaneous Application</h1>
       <p class="subtitle">
-        Explore our current opportunities and apply to the position that matches
-        your profile.
+        Send us your profile even if there is no open position matching your
+        background right now. Our HR team will keep your profile in the talent
+        pool for future opportunities.
       </p>
     </div>
 
     <template if:true={isLoading}>
-      <div class="state">Loading open positions...</div>
+      <div class="state">Loading your candidate profile...</div>
     </template>
 
-    <template if:true={hasJobs}>
-      <div class="jobs-grid">
-        <template for:each={jobs} for:item="job">
-          <article key={job.recordId} class="job-card">
-            <div>
-              <h2>{job.title}</h2>
-              <p class="deadline">
-                Application deadline: {job.applicationDeadline}
-              </p>
-              <p class="description">{job.portalDescription}</p>
-            </div>
-
-            <button
-              class="primary-button"
-              data-id={job.recordId}
-              onclick={handleViewDetails}
-            >
-              View details
-            </button>
-          </article>
-        </template>
-      </div>
-    </template>
-
-    <template if:true={hasNoJobs}>
-      <div class="empty-state">
-        No open positions are available at the moment.
-      </div>
-    </template>
-
-    <template if:true={error}>
-      <div class="error-state">An error occurred while loading jobs.</div>
-    </template>
-  </section>
-
-  <template if:true={isJobDetailsModalOpen}>
-    <section class="modal-backdrop" onclick={handleCloseModal}></section>
-
-    <section
-      class="modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="job-modal-title"
-    >
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Job Details</p>
-          <h2 id="job-modal-title">{selectedJob.title}</h2>
-        </div>
-
-        <button class="close-button" onclick={handleCloseModal} title="Close">
-          ×
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <p class="deadline">
-          Application deadline: {selectedJob.applicationDeadline}
+    <template if:true={isGuestUser}>
+      <div class="auth-message page-auth">
+        <h3>Authentication required</h3>
+        <p>
+          To submit a spontaneous application, please log in or create a
+          candidate account first.
         </p>
 
-        <div class="modal-description">{selectedJob.portalDescription}</div>
+        <div class="auth-actions">
+          <button class="secondary-button" onclick={handleLogin}>Log in</button>
 
-        <template if:true={showAuthMessage}>
-          <div class="auth-message">
-            <h3>Authentication required</h3>
-            <p>
-              To apply for this position, please log in or create an account
-              first.
-            </p>
-
-            <div class="auth-actions">
-              <button class="secondary-button" onclick={handleLogin}>
-                Log in
-              </button>
-
-              <button class="primary-button" onclick={handleRegister}>
-                Create account
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div class="modal-footer">
-        <button class="secondary-button" onclick={handleCloseModal}>
-          Close
-        </button>
-
-        <button class="primary-button" onclick={handleApply}>Apply</button>
-      </div>
-    </section>
-  </template>
-
-  <template if:true={isApplicationModalOpen}>
-    <section class="modal-backdrop" onclick={handleCloseModal}></section>
-
-    <section
-      class="modal application-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="application-modal-title"
-    >
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Application Form</p>
-          <h2 id="application-modal-title">Apply for {selectedJob.title}</h2>
+          <button class="primary-button" onclick={handleRegister}>
+            Create account
+          </button>
         </div>
-
-        <button class="close-button" onclick={handleCloseModal} title="Close">
-          ×
-        </button>
       </div>
+    </template>
 
-      <div class="modal-body">
+    <template if:true={errorMessage}>
+      <div class="error-state">{errorMessage}</div>
+    </template>
+
+    <template if:true={showApplicationForm}>
+      <section class="application-card">
+        <!-- Upload step -->
         <template if:true={isUploadStep}>
           <div class="form-section">
             <h3>Candidate information</h3>
@@ -169,12 +81,17 @@
           </div>
 
           <div class="form-section">
-            <h3>Selected job</h3>
+            <h3>Application type</h3>
 
             <div class="readonly-field full-width">
-              <span>Job Position</span>
-              <strong>{selectedJob.title}</strong>
+              <span>Type</span>
+              <strong>Spontaneous Application</strong>
             </div>
+
+            <p class="section-help">
+              No job position will be attached to this application. Your profile
+              will be kept for future opportunities.
+            </p>
           </div>
 
           <div class="form-section">
@@ -222,14 +139,9 @@
               <template if:true={isCvUploadMode}>
                 <label class="upload-box single-upload">
                   <span>Upload new CV</span>
-                  <p class="upload-help">
-                    Please upload your CV in PDF format only. DOC and DOCX files
-                    are not supported by the automatic CV analysis.
-                  </p>
-
                   <input
                     type="file"
-                    accept=".pdf,application/pdf"
+                    accept=".pdf,.doc,.docx"
                     onchange={handleCvChange}
                   />
 
@@ -279,13 +191,9 @@
               <template if:true={isMotivationUploadMode}>
                 <label class="upload-box single-upload">
                   <span>Upload new motivation letter</span>
-                  <p class="upload-help">
-                    Please upload your motivation letter in PDF format only.
-                  </p>
-
                   <input
                     type="file"
-                    accept=".pdf,application/pdf"
+                    accept=".pdf,.doc,.docx"
                     onchange={handleMotivationLetterChange}
                   />
 
@@ -297,17 +205,18 @@
             </div>
 
             <template if:true={uploadMessage}>
-              <p class={uploadMessageClass}>{uploadMessage}</p>
+              <p class="success-inline">{uploadMessage}</p>
             </template>
           </div>
         </template>
 
+        <!-- Review step -->
         <template if:true={isReviewStep}>
           <div class="form-section">
             <h3>Extracted CV information</h3>
             <p class="section-help">
               Please review the information extracted from your CV. You can
-              correct it before submitting your application.
+              correct it before submitting your spontaneous application.
             </p>
 
             <lightning-textarea
@@ -350,64 +259,68 @@
             </lightning-input>
 
             <template if:true={uploadMessage}>
-              <p class={uploadMessageClass}>{uploadMessage}</p>
+              <p class="success-inline">{uploadMessage}</p>
+            </template>
+
+            <template if:true={submissionMessage}>
+              <p class="success-inline">{submissionMessage}</p>
             </template>
           </div>
         </template>
 
+        <!-- Success step -->
         <template if:true={isSuccessStep}>
           <div class="success-panel">
-            <h3>Application submitted successfully.</h3>
+            <h3>Spontaneous application submitted successfully.</h3>
 
             <p>
               Your application reference is
               <strong>{createdJobApplicationName}</strong>.
             </p>
 
-            <p>You can now track your application from your candidate space.</p>
+            <p>
+              Your profile is now available in the talent pool for future
+              opportunities.
+            </p>
 
             <p class="redirect-message">Redirecting to My Applications...</p>
           </div>
         </template>
-      </div>
 
-      <div class="modal-footer">
-        <template if:false={isSuccessStep}>
-          <button class="secondary-button" onclick={handleCloseModal}>
-            Cancel
-          </button>
-        </template>
+        <div class="form-actions">
+          <template if:true={isReviewStep}>
+            <button class="secondary-button" onclick={handleBackToUpload}>
+              Back
+            </button>
+          </template>
 
-        <template if:true={isReviewStep}>
-          <button class="secondary-button" onclick={handleBackToUpload}>
-            Back
-          </button>
-        </template>
+          <template if:true={isUploadStep}>
+            <button
+              class="primary-button"
+              onclick={handleNext}
+              disabled={isNextDisabled}
+            >
+              {nextButtonLabel}
+            </button>
+          </template>
 
-        <template if:true={isUploadStep}>
-          <button
-            class="primary-button"
-            onclick={handleNext}
-            disabled={isNextDisabled}
-          >
-            {nextButtonLabel}
-          </button>
-        </template>
+          <template if:true={isReviewStep}>
+            <button
+              class="primary-button"
+              onclick={handleFinalSubmit}
+              disabled={isSubmitDisabled}
+            >
+              <template if:true={isSubmittingApplication}>
+                Submitting...
+              </template>
 
-        <template if:true={isReviewStep}>
-          <button
-            class="primary-button"
-            onclick={handleFinalApply}
-            disabled={isApplyDisabled}
-          >
-            <template if:true={isSubmittingApplication}>
-              Submitting...
-            </template>
-
-            <template if:false={isSubmittingApplication}> Apply </template>
-          </button>
-        </template>
-      </div>
-    </section>
-  </template>
+              <template if:false={isSubmittingApplication}>
+                Submit spontaneous application
+              </template>
+            </button>
+          </template>
+        </div>
+      </section>
+    </template>
+  </section>
 </template>

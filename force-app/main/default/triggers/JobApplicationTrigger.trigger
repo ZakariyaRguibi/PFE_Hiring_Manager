@@ -3,6 +3,7 @@ trigger JobApplicationTrigger on Job_Application__c(
   before update,
   after insert,
   after update
+  after insert
 ) {
   JobApplicationTriggerHandler.handle(
     Trigger.new,
