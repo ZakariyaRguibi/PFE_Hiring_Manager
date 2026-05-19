@@ -1,0 +1,33 @@
+<template>
+    <!-- Top: Pipeline Overview (horizontal stage columns) -->
+    <c-tf-interview-pipeline
+        record-id={recordId}
+        onstageselect={handleStageSelect}
+        onpipelineloaded={handlePipelineLoaded}>
+    </c-tf-interview-pipeline>
+
+    <!-- Bottom: Candidate Detail Panel (shown when a stage is selected) -->
+    <template if:true={selectedStageId}>
+        <div class="slds-m-top_small">
+            <c-tf-candidate-review-panel
+                record-id={recordId}
+                stage-id={selectedStageId}
+                stage-name={selectedStageName}
+                onpipelinechanged={handlePipelineChanged}>
+            </c-tf-candidate-review-panel>
+        </div>
+    </template>
+
+    <!-- "Select a stage" empty state (stages exist but none is selected) -->
+    <template if:true={showSelectStageEmpty}>
+        <div class="slds-m-top_small">
+            <lightning-card>
+                <div class="container-empty">
+                    <img src={emptyStateImg} alt="" class="container-empty__art"/>
+                    <h2 class="container-empty__title">Pick a stage to start reviewing</h2>
+                    <p class="container-empty__text">Click any column in the pipeline above to see the candidates in that stage.</p>
+                </div>
+            </lightning-card>
+        </div>
+    </template>
+</template>

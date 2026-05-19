@@ -1,0 +1,355 @@
+/* ═══ SLDS Path Chevron Stepper ═══ */
+.slds-path {
+    background: #fff;
+    border-radius: .25rem;
+}
+
+.slds-path__track {
+    overflow-x: auto;
+}
+
+.slds-path__scroller-container {
+    flex: 1;
+}
+
+.slds-path__scroller_inner {
+    display: flex;
+}
+
+.slds-path__item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: .3rem 1.25rem .3rem .75rem;
+    background: #ecebea;
+    color: #706e6b;
+    font-size: .75rem;
+    cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 10px 50%);
+    transition: background .15s;
+    text-align: center;
+    flex-direction: row;
+    gap: .35rem;
+}
+
+.slds-path__item:first-child {
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+    border-radius: .25rem 0 0 .25rem;
+}
+
+.slds-path__item:last-child {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10px 50%);
+    border-radius: 0 .25rem .25rem 0;
+}
+
+.slds-path__item:hover {
+    background: #d8d8d8;
+}
+
+.slds-path__item.slds-is-current {
+    background: #0070d2;
+    color: #fff;
+}
+
+.slds-path__item.slds-is-current:hover {
+    background: #005fb2;
+}
+
+.slds-path__item.slds-is-complete {
+    background: #d4edda;
+    color: #194e31;
+}
+
+.slds-path__item.slds-is-complete:hover {
+    background: #c1e6cc;
+}
+
+.slds-path__title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.slds-path__count {
+    font-size: .7rem;
+    font-weight: 400;
+    opacity: .85;
+}
+
+/* ═══ Pipeline horizontal columns ═══ */
+.pipeline-scroll {
+    overflow-x: auto;
+    padding-bottom: .25rem;
+}
+
+.pipeline-columns {
+    display: flex;
+    gap: .75rem;
+    min-width: min-content;
+}
+
+.stage-col {
+    flex: 1 1 0;
+    min-width: 200px;
+    border: 1px solid #e5e5e5;
+    border-radius: .25rem;
+    background: #fafaf9;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    display: flex;
+    flex-direction: column;
+}
+
+.stage-col:hover {
+    border-color: #b0c4de;
+}
+
+.stage-col-selected {
+    border-color: #0070d2;
+    box-shadow: 0 0 0 1px #0070d2;
+    background: #f3f6fb;
+}
+
+/* Synthetic "Hired" column */
+.stage-col-hired {
+    border-color: #2e844a;
+    background: #f3faf3;
+}
+.stage-col-hired .col-header {
+    background: #ecf7ed;
+    border-bottom-color: #cbe5d2;
+}
+.stage-col-hired .col-name {
+    color: #2e844a;
+    font-weight: 700;
+}
+.hired-icon {
+    --sds-c-icon-color-foreground: #2e844a;
+    --sds-c-icon-color-foreground-default: #2e844a;
+}
+
+.col-header {
+    padding: .5rem .75rem;
+    border-bottom: 1px solid #e5e5e5;
+    background: #fff;
+    border-radius: .25rem .25rem 0 0;
+}
+
+.col-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: #032d60;
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.col-name {
+    font-weight: 600;
+    max-width: 120px;
+}
+
+/* Count badge variants */
+.count-badge-active .slds-badge {
+    background: #0070d2;
+    color: #fff;
+}
+.count-badge-hired .slds-badge {
+    background: #2e844a;
+    color: #fff;
+}
+
+/* Per-candidate stage badge (Offer / Hired) in the Hired column */
+.stage-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: .15rem .4rem;
+    border-radius: .65rem;
+    margin-left: .35rem;
+    flex-shrink: 0;
+}
+.stage-badge--hired {
+    background: #2e844a;
+    color: #fff;
+}
+.stage-badge--offer {
+    background: #fef3d2;
+    color: #6b4d00;
+    border: 1px solid #f4c45a;
+}
+
+.col-body {
+    padding: .5rem .75rem;
+    flex: 1;
+}
+
+.candidate-row {
+    display: flex;
+    align-items: center;
+    padding: .3rem 0;
+}
+
+.candidate-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+/* ═══ Per-column empty state ═══ */
+.empty-col {
+    padding: 1rem 0 .75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.empty-col__art {
+    width: 88px;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: .4rem;
+    opacity: .9;
+}
+
+.empty-col__text {
+    font-size: .75rem;
+    color: #706e6b;
+    margin: 0;
+}
+
+/* ═══ Whole-card empty state (no stages) ═══ */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+.empty-state__art {
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 1rem;
+    opacity: .9;
+}
+
+.empty-state__art--small {
+    width: 140px;
+}
+
+.empty-state__title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 .35rem;
+}
+
+.empty-state__text {
+    font-size: .875rem;
+    color: #54698d;
+    line-height: 1.45;
+    margin: 0 0 1.25rem;
+}
+
+.empty-state__actions {
+    display: flex;
+    gap: .5rem;
+    justify-content: center;
+}
+
+.empty-state--modal {
+    padding: 1.5rem 1rem 1rem;
+}
+
+/* ═══ Empty team (inside manage modal) ═══ */
+.empty-team {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .75rem;
+    background: #fafaf9;
+    border: 1px dashed #d8dde6;
+    border-radius: .25rem;
+}
+
+.empty-team__icon {
+    --sds-c-icon-color-foreground-default: #b0adab;
+    opacity: .8;
+}
+
+.col-footer {
+    padding: .35rem .75rem;
+    border-top: 1px solid #e5e5e5;
+    text-align: center;
+}
+
+/* ═══ Manage Stages Modal ═══ */
+.manage-stage-row {
+    border: 1px solid #e5e5e5;
+    border-radius: .25rem;
+    padding: .5rem .75rem;
+    margin-bottom: .5rem;
+    background: #fff;
+}
+
+.manage-stage-row .slds-badge {
+    font-size: .7rem;
+    font-weight: 400;
+}
+
+.drag-handle {
+    cursor: grab;
+    opacity: .4;
+}
+.drag-handle:hover {
+    opacity: 1;
+}
+.stage-dragging {
+    opacity: .4;
+}
+.stage-drag-over {
+    border-color: #0070d2;
+    border-style: dashed;
+}
+
+.team-section {
+    padding: .5rem 0 0;
+    margin-top: .5rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+.member-row {
+    border-bottom: 1px solid #f0f0f0;
+}
+.member-row:last-child {
+    border-bottom: none;
+}
+
+.interviewer-stack {
+    display: flex;
+    align-items: center;
+}
+.stacked-avatar {
+    margin-left: -.35rem;
+}
+.stacked-avatar:first-child {
+    margin-left: 0;
+}

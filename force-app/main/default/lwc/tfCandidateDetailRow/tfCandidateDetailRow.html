@@ -1,0 +1,108 @@
+<template>
+    <div class="detail-container">
+
+        <!-- ── Stage Progress Timeline ── -->
+        <template if:true={hasStageProgress}>
+            <div class="stage-timeline">
+                <template for:each={stageProgressItems} for:item="s">
+                    <div key={s.key} class={s.stepClass}>
+                        <div class="step-dot">
+                            <template if:true={s.isDone}>
+                                <lightning-icon icon-name="utility:check" size="xx-small" alternative-text="Done"></lightning-icon>
+                            </template>
+                        </div>
+                        <span class="step-label">{s.stageName}</span>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ── 3-col body ── -->
+        <div class="slds-grid slds-gutters_small slds-wrap detail-body">
+
+            <!-- Col 1: Candidate Info -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                <p class="section-label">Candidate</p>
+                <dl class="slds-list_stacked slds-text-body_small">
+                    <div class="slds-item">
+                        <dt class="slds-text-color_weak">Email</dt>
+                        <dd>{candidate.candidateEmail}</dd>
+                    </div>
+                    <div class="slds-item slds-m-top_xx-small">
+                        <dt class="slds-text-color_weak">Experience</dt>
+                        <dd>{candidate.experienceLabel}</dd>
+                    </div>
+                    <div class="slds-item slds-m-top_xx-small">
+                        <dt class="slds-text-color_weak">Education</dt>
+                        <dd>{candidate.educationLabel}</dd>
+                    </div>
+                </dl>
+
+                <!-- Skills -->
+                <template if:true={hasSkills}>
+                    <p class="section-label slds-m-top_small">Skills</p>
+                    <div class="skill-tags">
+                        <template for:each={candidate.skillTags} for:item="skill">
+                            <lightning-badge key={skill} label={skill} class="slds-m-right_xx-small slds-m-bottom_xx-small"></lightning-badge>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Col 2: AI Sub-Scores -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                <template if:true={hasSubScores}>
+                    <p class="section-label">AI Matching</p>
+                    <div class="subscore-row">
+                        <span class="slds-text-body_small subscore-label">Skills</span>
+                        <lightning-progress-bar value={candidate.skillsPercent} size="small" class="subscore-bar"></lightning-progress-bar>
+                        <span class="slds-text-body_small subscore-val">{candidate.skillsScoreLabel}</span>
+                    </div>
+                    <div class="subscore-row">
+                        <span class="slds-text-body_small subscore-label">Exp</span>
+                        <lightning-progress-bar value={candidate.expPercent} size="small" class="subscore-bar"></lightning-progress-bar>
+                        <span class="slds-text-body_small subscore-val">{candidate.expScoreLabel}</span>
+                    </div>
+                    <div class="subscore-row">
+                        <span class="slds-text-body_small subscore-label">Edu</span>
+                        <lightning-progress-bar value={candidate.eduPercent} size="small" class="subscore-bar"></lightning-progress-bar>
+                        <span class="slds-text-body_small subscore-val">{candidate.eduScoreLabel}</span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Col 3: Interviewer Reviews -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                <p class="section-label">Interviewer Reviews</p>
+                <template if:true={hasInterviewerReviews}>
+                    <template for:each={reviewsByStage} for:item="group">
+                        <div key={group.key}>
+                            <p class="stage-group-label">{group.stageName}</p>
+                            <template for:each={group.reviews} for:item="r">
+                                <div key={r.key} class="reviewer-card">
+                                    <div class="reviewer-header">
+                                        <span class="reviewer-name">{r.interviewerName}</span>
+                                        <div class="reviewer-badges">
+                                            <template if:true={r.scoreDisplay}>
+                                                <lightning-badge label={r.scoreDisplay} class={r.scoreBadgeClass}></lightning-badge>
+                                            </template>
+                                            <template if:true={r.recommendation}>
+                                                <span class={r.recommendationClass}>{r.recommendation}</span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <template if:true={r.hasNotes}>
+                                        <p class="reviewer-notes">{r.notes}</p>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={hasInterviewerReviews}>
+                    <p class="slds-text-body_small slds-text-color_weak">No reviews yet.</p>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

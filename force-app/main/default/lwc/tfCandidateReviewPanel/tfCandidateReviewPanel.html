@@ -1,0 +1,293 @@
+<template>
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_large">
+            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+        </div>
+    </template>
+
+
+    <!-- Main content -->
+    <template if:true={stageId}>
+        <template if:false={isLoading}>
+            <!-- Error -->
+            <template if:true={error}>
+                <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+                    <span class="slds-assistive-text">error</span>
+                    <p>{error}</p>
+                </div>
+            </template>
+
+            <lightning-card icon-name="standard:people">
+                <span slot="title">{_stageName}</span>
+
+                <div class="slds-card__body">
+                    <!-- Tabs -->
+                    <div class="slds-tabs_default">
+                        <ul class="slds-tabs_default__nav" role="tablist">
+                            <li class={activeTabClass} role="presentation" data-tab="active" onclick={handleTabClick}>
+                                <a class="slds-tabs_default__link" role="tab" tabindex="0">{activeTabLabel}</a>
+                            </li>
+                            <li class={waitingTabClass} role="presentation" data-tab="waiting" onclick={handleTabClick}>
+                                <a class="slds-tabs_default__link" role="tab" tabindex="-1">{waitingTabLabel}</a>
+                            </li>
+                        </ul>
+
+                        <!-- ═══ Active Candidates ═══ -->
+                        <template if:true={isActiveTab}>
+                            <div class="slds-tabs_default__content slds-show" role="tabpanel">
+                                <template if:true={hasActive}>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-no-row-hover">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th scope="col" style="width:3rem"></th>
+                                                <th scope="col"><div class="slds-truncate" title="Candidate">Candidate</div></th>
+                                                <th scope="col" style="width:11rem"><div class="slds-truncate" title="Interview">Interview</div></th>
+                                                <th scope="col" style="width:9rem"><div class="slds-truncate" title="Interview Score">Interview Score</div></th>
+                                                <th scope="col" style="width:9rem"><div class="slds-truncate" title={activeStatusColumnLabel}>{activeStatusColumnLabel}</div></th>
+                                                <th scope="col" style="width:13rem"><div class="slds-truncate" title="Actions">Actions</div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={enrichedActive} for:item="c">
+                                                <tr key={c.applicationId} class={c.rowClass} data-appid={c.applicationId} onclick={handleRowClick}>
+                                                    <td>
+                                                        <lightning-avatar fallback-icon-name="standard:user" initials={c.candidateInitials} size="small" variant="circle"></lightning-avatar>
+                                                    </td>
+                                                    <td>
+                                                        <a data-appid={c.applicationId} onclick={handleNavToApp} class="slds-text-link">{c.candidateName}</a>
+                                                        <p class="slds-text-body_small slds-text-color_weak">{c.experienceLabel} &bull; {c.educationLabel}</p>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-badge label={c.interviewStatusLabel} class={c.interviewStatusClass}></lightning-badge>
+                                                    </td>
+                                                    <td>
+                                                        <template if:true={c.scoreLabel}>
+                                                            <lightning-badge label={c.scoreLabel} class={c.scoreBadgeClass}></lightning-badge>
+                                                        </template>
+                                                    </td>
+                                                    <td>
+                                                        <template if:true={isHiredView}>
+                                                            <template if:true={c.stageBadgeLabel}>
+                                                                <span class={c.stageBadgeClass}>{c.stageBadgeLabel}</span>
+                                                            </template>
+                                                        </template>
+                                                        <template if:false={isHiredView}>
+                                                            <template if:true={c.recommendation}>
+                                                                <span class={c.recommendationClass}>{c.recommendation}</span>
+                                                            </template>
+                                                        </template>
+                                                    </td>
+                                                    <td>
+                                                        <template if:true={isHiredView}>
+                                                            <div class="invite-action-cell">
+                                                                <template if:true={c.isOffer}>
+                                                                    <lightning-button label="Accept" variant="success" size="small" data-appid={c.applicationId} onclick={handleAcceptOffer}></lightning-button>
+                                                                    <lightning-button label="Decline" variant="destructive-text" size="small" data-appid={c.applicationId} onclick={handleDeclineOffer}></lightning-button>
+                                                                </template>
+                                                                <template if:true={c.isHired}>
+                                                                    <span class="slds-text-color_weak slds-text-body_small">Hired</span>
+                                                                </template>
+                                                                <lightning-button-menu alternative-text="More" menu-alignment="auto" icon-size="x-small" variant="border-filled" onclick={handleActionStopProp}>
+                                                                    <lightning-menu-item label="View Record" value="view" icon-name="utility:new_window" data-appid={c.applicationId} onclick={handleNavToApp}></lightning-menu-item>
+                                                                </lightning-button-menu>
+                                                            </div>
+                                                        </template>
+                                                        <template if:false={isHiredView}>
+                                                            <div class="invite-action-cell">
+                                                                <template if:false={c.invitationSent}>
+                                                                    <lightning-button label="Invite" icon-name="utility:email" data-appid={c.applicationId} onclick={handleInvite}></lightning-button>
+                                                                </template>
+                                                                <template if:true={c.invitationSent}>
+                                                                    <span class="slds-badge invite-sent-badge">Invited</span>
+                                                                </template>
+                                                                <lightning-button-menu alternative-text="Actions" menu-alignment="auto" icon-size="x-small" variant="border-filled" onclick={handleActionStopProp}>
+                                                                    <lightning-menu-item label="Undo Promotion" value="undo" icon-name="utility:undo" data-appid={c.applicationId} onclick={handleUndo}></lightning-menu-item>
+                                                                    <lightning-menu-item label="Reject" value="reject" icon-name="utility:ban" data-appid={c.applicationId} onclick={handleOpenReject}></lightning-menu-item>
+                                                                    <lightning-menu-item label="View Record" value="view" icon-name="utility:new_window" data-appid={c.applicationId} onclick={handleNavToApp}></lightning-menu-item>
+                                                                </lightning-button-menu>
+                                                            </div>
+                                                        </template>
+                                                    </td>
+                                                </tr>
+                                                <!-- Expanded detail -->
+                                                <template if:true={c.isExpanded}>
+                                                    <tr key={c.expandedRowKey}>
+                                                        <td colspan="6" class="detail-cell">
+                                                            <c-tf-candidate-detail-row
+                                                                candidate={c}
+                                                                all-stages={allStages}
+                                                                onnavigate={handleNavToApp}></c-tf-candidate-detail-row>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </template>
+                                <template if:false={hasActive}>
+                                    <div class="tab-empty">
+                                        <img src={emptyStateImg} alt="" class="tab-empty__art"/>
+                                        <h3 class="tab-empty__title">{emptyActiveTitle}</h3>
+                                        <p class="tab-empty__text">{emptyActiveText}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- ═══ Waiting List ═══ -->
+                        <template if:true={isWaitingTab}>
+                            <div class="slds-tabs_default__content slds-show" role="tabpanel">
+                                <template if:true={hasWaiting}>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-no-row-hover">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th scope="col" style="width:2.5rem"><div class="slds-truncate" title="Rank">#</div></th>
+                                                <th scope="col" style="width:3rem"></th>
+                                                <th scope="col"><div class="slds-truncate" title="Candidate">Candidate</div></th>
+                                                <th scope="col" style="width:11rem"><div class="slds-truncate" title="Interview">Interview</div></th>
+                                                <th scope="col" style="width:7rem"><div class="slds-truncate" title={waitingScoreLabel}>{waitingScoreLabel}</div></th>
+                                                <th scope="col" style="width:10rem"><div class="slds-truncate" title="Actions">Actions</div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={visibleWaiting} for:item="c">
+                                                <tr key={c.applicationId} class={c.rowClass} data-appid={c.applicationId} onclick={handleRowClick}>
+                                                    <td><span class="slds-text-body_small slds-text-color_weak">{c.rank}</span></td>
+                                                    <td>
+                                                        <lightning-avatar fallback-icon-name="standard:user" initials={c.candidateInitials} size="small" variant="circle"></lightning-avatar>
+                                                    </td>
+                                                    <td>
+                                                        <a data-appid={c.applicationId} onclick={handleNavToApp} class="slds-text-link">{c.candidateName}</a>
+                                                        <p class="slds-text-body_small slds-text-color_weak">{c.experienceLabel} &bull; {c.educationLabel}</p>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-badge label={c.interviewStatusLabel} class={c.interviewStatusClass}></lightning-badge>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-badge label={c.scoreLabel} class={c.scoreBadgeClass}></lightning-badge>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-button-group>
+                                                            <template if:true={isHiredView}>
+                                                                <lightning-button label="Offer" variant="success" size="small" data-appid={c.applicationId} onclick={handleExtendOffer}></lightning-button>
+                                                            </template>
+                                                            <template if:false={isHiredView}>
+                                                                <lightning-button label="Promote" variant="brand" size="small" data-appid={c.applicationId} onclick={handlePromote}></lightning-button>
+                                                            </template>
+                                                            <lightning-button-menu alternative-text="More" menu-alignment="auto" icon-size="x-small" variant="border-filled" onclick={handleActionStopProp}>
+                                                                <lightning-menu-item label="Reject" value="reject" icon-name="utility:ban" data-appid={c.applicationId} onclick={handleOpenReject}></lightning-menu-item>
+                                                                <lightning-menu-item label="View Record" value="view" icon-name="utility:new_window" data-appid={c.applicationId} onclick={handleNavToApp}></lightning-menu-item>
+                                                            </lightning-button-menu>
+                                                        </lightning-button-group>
+                                                    </td>
+                                                </tr>
+                                                <!-- Expanded detail -->
+                                                <template if:true={c.isExpanded}>
+                                                    <tr key={c.expandedRowKey}>
+                                                        <td colspan="6" class="detail-cell">
+                                                            <c-tf-candidate-detail-row
+                                                                candidate={c}
+                                                                all-stages={allStages}
+                                                                onnavigate={handleNavToApp}></c-tf-candidate-detail-row>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                    <template if:true={hasMoreWaiting}>
+                                        <div class="slds-text-align_center slds-m-top_small slds-m-bottom_small">
+                                            <lightning-button label={viewAllLabel} variant="base" onclick={handleToggleViewAll}></lightning-button>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={hasWaiting}>
+                                    <div class="tab-empty">
+                                        <img src={emptyStateImg} alt="" class="tab-empty__art"/>
+                                        <h3 class="tab-empty__title">{emptyWaitingTitle}</h3>
+                                        <p class="tab-empty__text">{emptyWaitingText}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </lightning-card>
+        </template>
+    </template>
+
+    <!-- Undo promotion confirmation modal (only shown when there are side effects) -->
+    <template if:true={showUndoModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="undo-modal-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseUndoModal}></lightning-button-icon>
+                    <h2 id="undo-modal-title" class="slds-modal__title slds-hyphenate">Undo promotion?</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_small">
+                        Undoing this promotion will affect <strong>{undoImpact.candidateName}</strong>.
+                        Here is what will happen:
+                    </p>
+                    <ul class="undo-impact-list slds-m-bottom_medium">
+                        <template if:true={undoImpact.hasScheduledInterview}>
+                            <li class="undo-impact-item">
+                                <lightning-icon icon-name="utility:event" size="x-small" class="slds-m-right_x-small undo-impact-icon"></lightning-icon>
+                                <span>The interview scheduled for <strong>{undoFormattedDate}</strong> will be cancelled.</span>
+                            </li>
+                        </template>
+                        <template if:true={undoImpact.invitationSent}>
+                            <li class="undo-impact-item">
+                                <lightning-icon icon-name="utility:email" size="x-small" class="slds-m-right_x-small undo-impact-icon"></lightning-icon>
+                                <span>The candidate was already invited — a cancellation will be recorded for follow-up.</span>
+                            </li>
+                        </template>
+                        <template if:true={undoImpact.hasCompletedInterview}>
+                            <li class="undo-impact-item">
+                                <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small undo-impact-icon undo-impact-icon--warn"></lightning-icon>
+                                <span>A completed interview already exists at this stage. Its score will stay on record.</span>
+                            </li>
+                        </template>
+                        <li class="undo-impact-item">
+                            <lightning-icon icon-name="utility:undo" size="x-small" class="slds-m-right_x-small undo-impact-icon"></lightning-icon>
+                            <span>The candidate will be returned to the waiting pool.</span>
+                        </li>
+                    </ul>
+                    <lightning-textarea
+                        label="Reason for undoing"
+                        value={undoReason}
+                        placeholder="Briefly explain why you're undoing this promotion..."
+                        required
+                        onchange={handleUndoReasonChange}>
+                    </lightning-textarea>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseUndoModal}></lightning-button>
+                    <lightning-button label="Confirm undo" variant="destructive" disabled={isUndoing} onclick={handleConfirmUndo} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Reject modal -->
+    <template if:true={showRejectModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="reject-modal-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseRejectModal}></lightning-button-icon>
+                    <h2 id="reject-modal-title" class="slds-modal__title slds-hyphenate">Reject Candidate</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-textarea label="Rejection Reason" value={rejectReason} placeholder="Enter the reason for rejection..." required onchange={handleRejectReasonChange}></lightning-textarea>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseRejectModal}></lightning-button>
+                    <lightning-button label="Reject" variant="destructive" onclick={handleConfirmReject} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -1,0 +1,187 @@
+/* ── Container ── */
+.detail-container {
+    background: #fafaf9;
+    border-top: 1px solid #e5e5e5;
+    padding: 0.75rem 1rem;
+}
+
+/* ── Section label ── */
+.section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+}
+
+/* ── Stage timeline ── */
+.stage-timeline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e5e5;
+    overflow-x: auto;
+}
+
+.stage-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 4rem;
+    position: relative;
+}
+
+/* connecting line between steps */
+.stage-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 0.6rem;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #d8d8d8;
+    z-index: 0;
+}
+.stage-step--done:not(:last-child)::after {
+    background: #2e844a;
+}
+.stage-step--current:not(:last-child)::after {
+    background: #d8d8d8;
+}
+
+.step-dot {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    border: 2px solid #d8d8d8;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.stage-step--done .step-dot {
+    background: #2e844a;
+    border-color: #2e844a;
+    color: #fff;
+}
+.stage-step--current .step-dot {
+    background: #0176d3;
+    border-color: #0176d3;
+    width: 1.4rem;
+    height: 1.4rem;
+}
+.stage-step--upcoming .step-dot {
+    background: #fff;
+    border-color: #c9c9c9;
+}
+
+.step-label {
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+    text-align: center;
+    color: #706e6b;
+    max-width: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.stage-step--done .step-label   { color: #2e844a; font-weight: 600; }
+.stage-step--current .step-label { color: #0176d3; font-weight: 700; }
+
+/* ── Body columns ── */
+.detail-body {
+    padding-top: 0.25rem;
+}
+
+/* ── Skills ── */
+.skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* ── AI sub-scores ── */
+.subscore-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+.subscore-label {
+    width: 2.5rem;
+    flex-shrink: 0;
+    color: #706e6b;
+}
+.subscore-bar { flex: 1; }
+.subscore-val {
+    width: 1.5rem;
+    text-align: right;
+    font-weight: 600;
+}
+
+/* ── Stage group label ── */
+.stage-group-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #0176d3;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0.4rem 0 0.2rem;
+}
+
+/* ── Reviewer cards ── */
+.reviewer-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.5rem;
+    background: #fff;
+}
+.reviewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.reviewer-name {
+    font-weight: 600;
+    font-size: 0.8125rem;
+}
+.reviewer-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.reviewer-notes {
+    font-size: 0.75rem;
+    color: #444;
+    margin-top: 0.35rem;
+    white-space: pre-wrap;
+}
+
+/* Score badge (mirrors panel) */
+.score-badge--high   { --sds-c-badge-color-background: #cae6d6; --sds-c-badge-text-color: #194e31; }
+.score-badge--medium { --sds-c-badge-color-background: #fef3cd; --sds-c-badge-text-color: #6b5900; }
+.score-badge--low    { --sds-c-badge-color-background: #fdd;    --sds-c-badge-text-color: #8c1a11; }
+.score-badge--none   { --sds-c-badge-color-background: #ecebea; --sds-c-badge-text-color: #706e6b; }
+
+/* Recommendation badge */
+.rec-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.75rem;
+    white-space: nowrap;
+}
+.rec-strong-yes { background: #194e31; color: #fff; }
+.rec-yes        { background: #cae6d6; color: #194e31; }
+.rec-maybe      { background: #fef3cd; color: #6b5900; }
+.rec-no         { background: #fdd;    color: #8c1a11; }
+.rec-strong-no  { background: #8c1a11; color: #fff; }

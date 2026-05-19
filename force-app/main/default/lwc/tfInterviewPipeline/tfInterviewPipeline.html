@@ -1,0 +1,305 @@
+<template>
+    <lightning-card title="Pipeline Overview" icon-name="standard:task2">
+        <div slot="actions">
+            <lightning-button-group>
+                <lightning-button label="Manage Stages" icon-name="utility:settings" variant="neutral" onclick={handleOpenManageStages}></lightning-button>
+                <lightning-button label="Add Stage" icon-name="utility:add" variant="neutral" onclick={handleAddStage}></lightning-button>
+            </lightning-button-group>
+        </div>
+
+        <div class="slds-card__body slds-card__body_inner">
+            <!-- Loading -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Empty state -->
+            <template if:false={hasStages}>
+                <template if:false={isLoading}>
+                    <div class="empty-state">
+                        <img src={emptyStateImg} alt="" class="empty-state__art"/>
+                        <h2 class="empty-state__title">Build your interview pipeline</h2>
+                        <p class="empty-state__text">Define the stages candidates will move through — from screening through final interview. You can reorder them at any time.</p>
+                        <div class="empty-state__actions">
+                            <lightning-button label="Add First Stage" icon-name="utility:add" variant="brand" onclick={handleAddStage}></lightning-button>
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Pipeline -->
+            <template if:true={hasStages}>
+                <!-- ═══ Chevron Path Stepper ═══ -->
+                <div class="slds-path slds-m-bottom_medium">
+                    <div class="slds-grid slds-path__track">
+                        <div class="slds-grid slds-path__scroller-container">
+                            <div class="slds-path__scroller">
+                                <div class="slds-path__scroller_inner" role="listbox">
+                                    <template for:each={pathSteps} for:item="step">
+                                        <span key={step.key}
+                                              class={step.pathClass}
+                                              role="option"
+                                              data-id={step.key}
+                                              onclick={handleStageClick}>
+                                            <span class="slds-path__title">{step.stageName}</span>
+                                            <span class="slds-path__count">{step.countLabel}</span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Stage Columns (Kanban) ═══ -->
+                <div class="pipeline-scroll">
+                    <div class="pipeline-columns">
+                        <template for:each={enrichedStages} for:item="col">
+                            <div key={col.stage.Id}
+                                 class={col.columnClass}
+                                 data-id={col.stage.Id}
+                                 onclick={handleStageClick}>
+
+                                <!-- Column header -->
+                                <div class="col-header">
+                                    <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <template if:true={col.isHired}>
+                                                <lightning-icon icon-name="utility:success" size="x-small" class="hired-icon slds-m-right_x-small"></lightning-icon>
+                                            </template>
+                                            <template if:false={col.isHired}>
+                                                <span class="col-number">{col.stage.Stage_Number__c}</span>
+                                            </template>
+                                            <span class="slds-text-body_regular col-name slds-m-left_x-small slds-truncate">{col.stage.Name}</span>
+                                        </div>
+                                        <lightning-badge label={col.countLabel} class={col.countBadgeClass}></lightning-badge>
+                                    </div>
+                                </div>
+
+                                <!-- Candidate list -->
+                                <div class="col-body">
+                                    <template if:true={col.hasCandidates}>
+                                        <template for:each={col.topCandidates} for:item="c">
+                                            <div key={c.applicationId} class="candidate-row">
+                                                <lightning-avatar fallback-icon-name="standard:user" initials={c.candidateInitials} size="x-small" variant="circle" class="slds-m-right_x-small"></lightning-avatar>
+                                                <div class="candidate-info">
+                                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                                        <span class="slds-text-body_small slds-truncate">{c.candidateName}</span>
+                                                        <template if:true={c.hasStageBadge}>
+                                                            <span class={c.stageBadgeClass}>{c.applicationStage}</span>
+                                                        </template>
+                                                    </div>
+                                                    <template if:true={c.applicationDate}>
+                                                        <span class="slds-text-body_small slds-text-color_weak">{c.dateLabel}</span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={col.hasCandidates}>
+                                        <div class="empty-col">
+                                            <img src={emptyStateImg} alt="" class="empty-col__art"/>
+                                            <template if:true={col.isHired}>
+                                                <p class="empty-col__text">No hires yet</p>
+                                            </template>
+                                            <template if:false={col.isHired}>
+                                                <p class="empty-col__text">No candidates yet</p>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Footer -->
+                                <template if:true={col.hasMore}>
+                                    <div class="col-footer">
+                                        <a class="slds-text-link slds-text-body_small" data-id={col.stage.Id} onclick={handleViewAll}>View all {col.activeCount}</a>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+
+    <!-- ══ Manage Stages Modal ══ -->
+    <template if:true={showManageModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="manage-modal-title" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseManageModal}></lightning-button-icon>
+                    <h2 id="manage-modal-title" class="slds-modal__title slds-hyphenate">Manage Interview Stages</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <!-- Weight bar -->
+                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                        <span class="slds-text-body_small slds-text-color_weak">Stage weights total</span>
+                        <span class={weightTotalClass}>{totalWeight}% / 100%</span>
+                    </div>
+                    <lightning-progress-bar value={weightBarValue} size="small" class="slds-m-bottom_small"></lightning-progress-bar>
+
+                    <!-- Empty state (no stages configured) -->
+                    <template if:false={hasStages}>
+                        <div class="empty-state empty-state--modal">
+                            <img src={emptyStateImg} alt="" class="empty-state__art empty-state__art--small"/>
+                            <h2 class="empty-state__title">No stages configured</h2>
+                            <p class="empty-state__text">Create your first interview stage to start building the pipeline. You can edit weights, durations, and team members afterwards.</p>
+                            <div class="empty-state__actions">
+                                <lightning-button label="Add First Stage" icon-name="utility:add" variant="brand" onclick={handleAddStage}></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Stage list -->
+                    <template if:true={hasStages}>
+                        <div class="manage-stage-list">
+                            <template for:each={managedStages} for:item="s">
+                                <div key={s.stage.Id}
+                                     class="manage-stage-row"
+                                     draggable="true"
+                                     data-id={s.stage.Id}
+                                     ondragstart={handleDragStart}
+                                     ondragover={handleDragOver}
+                                     ondragleave={handleDragLeave}
+                                     ondrop={handleDrop}
+                                     ondragend={handleDragEnd}>
+                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                        <lightning-icon icon-name="utility:drag_and_drop" size="xx-small" class="slds-icon-text-default slds-m-right_x-small drag-handle"></lightning-icon>
+                                        <span class="col-number slds-m-right_x-small">{s.stage.Stage_Number__c}</span>
+                                        <div class="slds-col slds-grow">
+                                            <p class="slds-text-body_regular"><strong>{s.stage.Name}</strong></p>
+                                            <div class="slds-grid slds-wrap slds-m-top_xx-small">
+                                                <template if:true={s.durationLabel}><span class="slds-badge slds-m-right_xx-small">{s.durationLabel}</span></template>
+                                                <template if:true={s.weightLabel}><span class="slds-badge slds-m-right_xx-small">{s.weightLabel}</span></template>
+                                                <template if:true={s.maxScoreLabel}><span class="slds-badge slds-m-right_xx-small">{s.maxScoreLabel}</span></template>
+                                                <template if:true={s.passLabel}><span class="slds-badge slds-m-right_xx-small">{s.passLabel}</span></template>
+                                            </div>
+                                            <template if:true={s.dateLabel}>
+                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">{s.dateLabel}</p>
+                                            </template>
+                                        </div>
+                                        <div class="slds-col slds-grow-none slds-m-right_small interviewer-stack">
+                                            <template if:true={s.hasMembers}>
+                                                <template for:each={s.visibleMembers} for:item="m">
+                                                    <lightning-avatar key={m.Id} fallback-icon-name="standard:user" initials={m.initials} size="x-small" class="stacked-avatar" title={m.Interviewer__r.Name}></lightning-avatar>
+                                                </template>
+                                                <template if:true={s.overflowCount}>
+                                                    <span class="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">+{s.overflowCount}</span>
+                                                </template>
+                                            </template>
+                                        </div>
+                                        <lightning-button-menu alternative-text="Actions" menu-alignment="auto" icon-size="x-small" variant="border-filled">
+                                            <lightning-menu-item label="Edit" value="edit" icon-name="utility:edit" data-id={s.stage.Id} onclick={handleEditStage}></lightning-menu-item>
+                                            <lightning-menu-item label="Manage Team" value="team" icon-name="utility:people" data-id={s.stage.Id} onclick={handleToggleExpand}></lightning-menu-item>
+                                            <lightning-menu-item label="Delete" value="delete" icon-name="utility:delete" data-id={s.stage.Id} onclick={handleDeleteStage}></lightning-menu-item>
+                                        </lightning-button-menu>
+                                    </div>
+                                    <template if:true={s.expanded}>
+                                        <div class="team-section">
+                                            <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                                                <span class="slds-text-title_caps slds-text-color_weak">Interview Team</span>
+                                                <lightning-button label="Add Member" icon-name="utility:add" variant="base" size="small" data-stageid={s.stage.Id} onclick={handleAddMember}></lightning-button>
+                                            </div>
+                                            <template if:true={s.hasMembers}>
+                                                <template for:each={s.members} for:item="m">
+                                                    <div key={m.Id} class="slds-grid slds-grid_vertical-align-center slds-p-vertical_xx-small member-row">
+                                                        <lightning-avatar fallback-icon-name="standard:user" initials={m.initials} size="small" class="slds-m-right_small"></lightning-avatar>
+                                                        <div class="slds-col slds-grow">
+                                                            <p class="slds-text-body_regular">{m.Interviewer__r.Name}</p>
+                                                            <p class="slds-text-body_small slds-text-color_weak">{m.Role__c}</p>
+                                                        </div>
+                                                        <lightning-button-icon icon-name="utility:close" variant="bare" alternative-text="Remove" size="small" data-memberid={m.Id} data-stageid={s.stage.Id} onclick={handleDeleteMember}></lightning-button-icon>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                            <template if:false={s.hasMembers}>
+                                                <div class="empty-team">
+                                                    <lightning-icon icon-name="utility:user" size="x-small" alternative-text="" class="empty-team__icon"></lightning-icon>
+                                                    <span class="slds-text-body_small slds-text-color_weak">No interviewers assigned. Add someone to lead or support this stage.</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Close" onclick={handleCloseManageModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ══ Stage Edit Modal ══ -->
+    <template if:true={showStageModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="stage-modal-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseModal}></lightning-button-icon>
+                    <h2 id="stage-modal-title" class="slds-modal__title slds-hyphenate">{modalTitle}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-input label="Stage Name" value={editingStage.Name} placeholder="e.g. Phone Screen, Technical Interview" required data-field="Name" onchange={handleStageFieldChange}></lightning-input>
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col">
+                            <lightning-input type="date" label="Start Date" value={editingStage.Start_Date__c} data-field="Start_Date__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-input type="date" label="End Date" value={editingStage.End_Date__c} data-field="End_Date__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col">
+                            <lightning-input type="number" label="Duration (min)" value={editingStage.Duration_Minutes__c} min="15" step="15" required data-field="Duration_Minutes__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-input type="number" label="Weight (%)" value={editingStage.Stage_Weight__c} min="0" max="100" data-field="Stage_Weight__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col">
+                            <lightning-input type="number" label="Max Score" value={editingStage.Max_Score__c} min="0" data-field="Max_Score__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-input type="number" label="Passing Threshold" value={editingStage.Passing_Threshold__c} min="0" data-field="Passing_Threshold__c" onchange={handleStageFieldChange}></lightning-input>
+                        </div>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseModal}></lightning-button>
+                    <lightning-button label={saveLabel} variant="brand" disabled={isSaving} onclick={handleSaveStage} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ══ Member Modal ══ -->
+    <template if:true={showMemberModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="member-modal-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseMemberModal}></lightning-button-icon>
+                    <h2 id="member-modal-title" class="slds-modal__title slds-hyphenate">Add Interviewer</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-record-picker label="Interviewer" placeholder="Search users..." object-api-name="User" required onchange={handleInterviewerChange}></lightning-record-picker>
+                    <div class="slds-m-top_small">
+                        <lightning-combobox label="Role" value={editingMember.Role__c} placeholder="Select a role" options={roleOptions} required onchange={handleMemberRoleChange}></lightning-combobox>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseMemberModal}></lightning-button>
+                    <lightning-button label={saveLabel} variant="brand" disabled={isSaving} onclick={handleSaveMember} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

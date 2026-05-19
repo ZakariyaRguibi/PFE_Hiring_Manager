@@ -1,0 +1,134 @@
+/* Clickable rows */
+.clickable-row {
+    cursor: pointer;
+}
+.clickable-row:hover td {
+    background-color: #f3f3f3;
+}
+.row-expanded td {
+    background-color: #f7f9fb;
+}
+
+/* Detail cell */
+.detail-cell {
+    padding: 0 !important;
+    background: #fafaf9;
+}
+
+/* Score badge */
+.score-badge .slds-badge {
+    font-weight: 700;
+    min-width: 2.25rem;
+    text-align: center;
+}
+.score-badge--high .slds-badge {
+    background: #cae6d6;
+    color: #194e31;
+}
+.score-badge--medium .slds-badge {
+    background: #fef3cd;
+    color: #6b5900;
+}
+.score-badge--low .slds-badge {
+    background: #fdd;
+    color: #8c1a11;
+}
+.score-badge--none .slds-badge {
+    background: #ecebea;
+    color: #706e6b;
+}
+
+/* Recommendation badge */
+.rec-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.75rem;
+    white-space: nowrap;
+    display: inline-block;
+}
+.rec-strong-yes { background: #194e31; color: #fff; }
+.rec-yes        { background: #cae6d6; color: #194e31; }
+.rec-maybe      { background: #fef3cd; color: #6b5900; }
+.rec-no         { background: #fdd;    color: #8c1a11; }
+.rec-strong-no  { background: #8c1a11; color: #fff; }
+
+/* Invite action cell */
+.invite-action-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.invite-sent-badge {
+    background: #cae6d6;
+    color: #194e31;
+}
+
+/* ═══ Empty states ═══ */
+/* Inside-tab empty (active list or waiting list is empty) */
+.tab-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.tab-empty__art {
+    width: 160px;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: .75rem;
+    opacity: .9;
+}
+
+.tab-empty__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 .25rem;
+}
+
+.tab-empty__text {
+    font-size: .8125rem;
+    color: #54698d;
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* ═══ Undo promotion modal ═══ */
+.undo-impact-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: #fafaf9;
+    border: 1px solid #ecebea;
+    border-radius: .25rem;
+}
+
+.undo-impact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .25rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid #ecebea;
+    font-size: .875rem;
+    color: #181818;
+    line-height: 1.4;
+}
+
+.undo-impact-item:last-child {
+    border-bottom: none;
+}
+
+.undo-impact-icon {
+    --sds-c-icon-color-foreground-default: #54698d;
+    margin-top: .15rem;
+    flex-shrink: 0;
+}
+
+.undo-impact-icon--warn {
+    --sds-c-icon-color-foreground-default: #8c1a11;
+}
