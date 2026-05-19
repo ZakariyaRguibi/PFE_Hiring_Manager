@@ -31,11 +31,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Availability_Slot__c.End_DateTime__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>Availability_Slot__c.Interviewer__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -52,11 +47,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Is_Recurring__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Availability_Slot__c.Start_DateTime__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
