@@ -15,12 +15,52 @@
     <description>Core permissions for TalentForce Interviewers. Limited access to conduct interviews and manage their own availability.</description>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Availability_Slot__c.Day_Of_Week__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Availability_Slot__c.Deactivated_Date__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Effective_From__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.End_DateTime__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Interviewer__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Is_Blocked__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Availability_Slot__c.Is_Booked__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Is_Recurring__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Start_DateTime__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Interview_Stage__c.Duration_Minutes__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
