@@ -56,6 +56,7 @@ public without sharing class InterviewerAvailabilityController {
         AND Deactivated_Date__c = NULL
         AND Start_DateTime__c >= :weekStartDt
         AND Start_DateTime__c < :weekEndDt))
+      WITH USER_MODE
       ORDER BY Day_Of_Week__c, Start_DateTime__c
     ];
   }
@@ -67,12 +68,13 @@ public without sharing class InterviewerAvailabilityController {
         SELECT Id, Interviewer__c, Is_Blocked__c
         FROM Availability_Slot__c
         WHERE Id = :slotId
+        WITH USER_MODE
       ];
       if (slot.Interviewer__c != UserInfo.getUserId()) {
         throw new AuraHandledException('You can only modify your own windows.');
       }
       slot.Is_Blocked__c = !slot.Is_Blocked__c;
-      update slot;
+      update as user slot;
       return slot.Is_Blocked__c;
     } catch (AuraHandledException e) {
       throw e;
@@ -149,6 +151,7 @@ public without sharing class InterviewerAvailabilityController {
             AND Day_Of_Week__c = :dayOfWeek
             AND Start_DateTime__c = :startDt
             AND End_DateTime__c = :endDt
+          WITH USER_MODE
         ];
         if (!duplicates.isEmpty()) {
           Availability_Slot__c existing = duplicates[0];
@@ -157,7 +160,7 @@ public without sharing class InterviewerAvailabilityController {
             existing.Effective_From__c > effectiveFrom
           ) {
             existing.Effective_From__c = effectiveFrom;
-            update existing;
+            update as user existing;
             return;
           }
           throw new AuraHandledException(
@@ -176,6 +179,7 @@ public without sharing class InterviewerAvailabilityController {
             AND Is_Blocked__c = FALSE
             AND Deactivated_Date__c = NULL
             AND Day_Of_Week__c = :dayOfWeek
+          WITH USER_MODE
         ]) {
           Time otS = Time.newInstance(
             ot.Start_DateTime__c.hourGmt(),
@@ -195,7 +199,7 @@ public without sharing class InterviewerAvailabilityController {
           }
         }
         if (!toDeactivate.isEmpty())
-          update toDeactivate;
+          update as user toDeactivate;
 
         // Same-type: deactivate recurring slots fully encompassed by the new one
         List<Availability_Slot__c> encompassed = [
@@ -208,12 +212,13 @@ public without sharing class InterviewerAvailabilityController {
             AND Day_Of_Week__c = :dayOfWeek
             AND Start_DateTime__c >= :startDt
             AND End_DateTime__c <= :endDt
+          WITH USER_MODE
         ];
         for (Availability_Slot__c ol : encompassed) {
           ol.Deactivated_Date__c = Date.today();
         }
         if (!encompassed.isEmpty())
-          update encompassed;
+          update as user encompassed;
 
         // Check for remaining partial overlaps (old slot is bigger)
         List<Availability_Slot__c> remaining = [
@@ -226,6 +231,7 @@ public without sharing class InterviewerAvailabilityController {
             AND Day_Of_Week__c = :dayOfWeek
             AND Start_DateTime__c < :endDt
             AND End_DateTime__c > :startDt
+          WITH USER_MODE
         ];
         if (!remaining.isEmpty()) {
           Availability_Slot__c c = remaining[0];
@@ -254,7 +260,7 @@ public without sharing class InterviewerAvailabilityController {
           );
         }
 
-        insert new Availability_Slot__c(
+        insert as user new Availability_Slot__c(
           Interviewer__c = UserInfo.getUserId(),
           Day_Of_Week__c = dayOfWeek,
           Start_DateTime__c = startDt,
@@ -286,6 +292,7 @@ public without sharing class InterviewerAvailabilityController {
             AND (Effective_From__c = NULL
             OR Effective_From__c <= :weekStartDate)
             AND Day_Of_Week__c = :dayOfWeek
+          WITH USER_MODE
         ]) {
           Time recS = Time.newInstance(
             rec.Start_DateTime__c.hourGmt(),
@@ -308,7 +315,7 @@ public without sharing class InterviewerAvailabilityController {
           }
         }
 
-        insert new Availability_Slot__c(
+        insert as user new Availability_Slot__c(
           Interviewer__c = UserInfo.getUserId(),
           Day_Of_Week__c = dayOfWeek,
           Start_DateTime__c = startDt,
@@ -337,12 +344,13 @@ public without sharing class InterviewerAvailabilityController {
         SELECT Id, Interviewer__c, Deactivated_Date__c
         FROM Availability_Slot__c
         WHERE Id = :slotId
+        WITH USER_MODE
       ];
       if (slot.Interviewer__c != UserInfo.getUserId()) {
         throw new AuraHandledException('You can only delete your own windows.');
       }
       slot.Deactivated_Date__c = Date.today();
-      update slot;
+      update as user slot;
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -364,6 +372,7 @@ public without sharing class InterviewerAvailabilityController {
           Day_Of_Week__c
         FROM Availability_Slot__c
         WHERE Id = :windowId
+        WITH USER_MODE
       ];
       if (window.Interviewer__c != UserInfo.getUserId()) {
         throw new AuraHandledException('You can only block your own windows.');
@@ -382,11 +391,12 @@ public without sharing class InterviewerAvailabilityController {
           AND Is_Blocked__c = TRUE
           AND Start_DateTime__c = :DateTime.newInstance(d, startT)
           AND End_DateTime__c = :DateTime.newInstance(d, endT)
+        WITH USER_MODE
       ];
       if (!existing.isEmpty())
         return;
 
-      insert new Availability_Slot__c(
+      insert as user new Availability_Slot__c(
         Interviewer__c = UserInfo.getUserId(),
         Day_Of_Week__c = window.Day_Of_Week__c,
         Start_DateTime__c = DateTime.newInstance(d, startT),
@@ -410,6 +420,7 @@ public without sharing class InterviewerAvailabilityController {
         SELECT Id, Interviewer__c, Start_DateTime__c, End_DateTime__c
         FROM Availability_Slot__c
         WHERE Id = :windowId
+        WITH USER_MODE
       ];
       if (window.Interviewer__c != UserInfo.getUserId()) {
         throw new AuraHandledException(
@@ -430,9 +441,10 @@ public without sharing class InterviewerAvailabilityController {
           AND Is_Blocked__c = TRUE
           AND Start_DateTime__c = :DateTime.newInstance(d, startT)
           AND End_DateTime__c = :DateTime.newInstance(d, endT)
+        WITH USER_MODE
       ];
       if (!blocks.isEmpty())
-        delete blocks;
+        delete as user blocks;
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -473,6 +485,7 @@ public without sharing class InterviewerAvailabilityController {
             endDate,
             Time.newInstance(0, 0, 0, 0)
           )
+        WITH USER_MODE
         ORDER BY Scheduled_DateTime__c
       ];
 
