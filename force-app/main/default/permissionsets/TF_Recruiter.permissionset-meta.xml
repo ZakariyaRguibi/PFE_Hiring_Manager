@@ -1,7 +1,16 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description
-  >Full permissions for TalentForce HR Managers. CRUD on all objects, all fields visible, reports access.</description>
+    <description>Full permissions for TalentForce HR Managers. CRUD on all objects, all fields visible, reports access.</description>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Deactivated_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Availability_Slot__c.Effective_From__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>TF HR Manager</label>
     <objectPermissions>
