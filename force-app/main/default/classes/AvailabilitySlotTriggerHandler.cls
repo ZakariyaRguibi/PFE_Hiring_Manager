@@ -3,16 +3,34 @@
  * Prevents overlapping availability slots for the same interviewer.
  */
 public inherited sharing class AvailabilitySlotTriggerHandler {
-  /**
-   * @description Entry point called by the trigger. Delegates to overlap validation.
-   * @param newList records being inserted or updated
-   * @param oldMap previous record state (null on insert)
-   */
-  public static void handle(
+  public static Boolean skipSchedulingRetry = false;
+
+  public static void handleBeforeSave(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
     validateNoOverlappingSlots(newList, oldMap);
+  }
+
+  public static void handleAfterSave(
+    List<Availability_Slot__c> newList,
+    Map<Id, Availability_Slot__c> oldMap
+  ) {
+    if (skipSchedulingRetry == true) {
+      return;
+    }
+
+    JobApplicationInterviewSchedulingService.handleAvailabilityAfterSave(
+      newList,
+      oldMap
+    );
+  }
+
+  public static void handle(
+    List<Availability_Slot__c> newList,
+    Map<Id, Availability_Slot__c> oldMap
+  ) {
+    handleBeforeSave(newList, oldMap);
   }
 
   /**
