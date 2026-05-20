@@ -98,39 +98,18 @@ public without sharing class InterviewSchedulingDeadlineBatch implements Databas
       JobApplicationInterviewSchedulingService.MINIMUM_INTERVIEW_OFFSET_DAYS
     );
 
-    if (interviewRecord.Candidate_Tried_To_Schedule__c != true) {
-      // Without the historical field, the safest decision is based on the
-      // current scheduling reality: withdraw only if valid candidate-facing
-      // slots still exist. If no slots exist anymore, HR should review.
-      return JobApplicationInterviewSchedulingService.hasValidCandidateSlot(
-        interviewRecord.Interview_Stage__c,
-        earliestAllowedSlotStart,
-        interviewRecord.Scheduling_Deadline__c,
-        true
-      );
-    }
-
-    if (
-      interviewRecord.Scheduling_Issue_Reason__c == ISSUE_NO_AVAILABLE_SLOTS
-    ) {
+    if (interviewRecord.Candidate_Tried_To_Schedule__c == true) {
       return false;
     }
 
-    if (
-      interviewRecord.Scheduling_Issue_Reason__c ==
-      ISSUE_SLOT_BECAME_UNAVAILABLE
-    ) {
-      // If alternatives are still available after the failed slot selection,
-      // the candidate had another chance to schedule. If no slots remain,
-      // HR should review instead of automatic withdrawal.
-      return JobApplicationInterviewSchedulingService.hasValidCandidateSlot(
-        interviewRecord.Interview_Stage__c,
-        earliestAllowedSlotStart,
-        interviewRecord.Scheduling_Deadline__c,
-        true
-      );
-    }
-
-    return false;
+    // Normal flow: a pending interview is created only after valid availability exists.
+    // This guard still protects candidates from manual/legacy pending interviews that
+    // were never backed by any valid candidate-facing slot.
+    return JobApplicationInterviewSchedulingService.hasValidCandidateSlot(
+      interviewRecord.Interview_Stage__c,
+      earliestAllowedSlotStart,
+      interviewRecord.Scheduling_Deadline__c,
+      true
+    );
   }
 }

@@ -5,6 +5,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>CandidateReviewController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>InterviewerAvailabilityController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -25,6 +29,13 @@
         <field>Availability_Slot__c.Effective_From__c</field>
         <readable>true</readable>
     </fieldPermissions>
+
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Job_Application__c.Current_Interview_Stage__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+
     <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Interviewer__c</field>

@@ -185,7 +185,10 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
       if (ex.Id == slot.Id) {
         continue;
       }
-      if (isAllowedBookedSlotOverlap(slot, ex)) {
+      if (
+        isAllowedBookedSlotOverlap(slot, ex) ||
+        isAllowedBlockedSlotOverlap(slot, ex)
+      ) {
         continue;
       }
 
@@ -199,6 +202,21 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
         return;
       }
     }
+  }
+
+  /**
+   * @description Allows a one-time blocked exception to sit inside its parent recurring availability window.
+   * This represents "available every week except this specific date".
+   */
+  private static Boolean isAllowedBlockedSlotOverlap(
+    Availability_Slot__c slot,
+    Availability_Slot__c existingSlot
+  ) {
+    return slot.Is_Blocked__c == true &&
+      slot.Is_Recurring__c == false &&
+      existingSlot.Is_Recurring__c == true &&
+      existingSlot.Is_Blocked__c == false &&
+      existingSlot.Is_Booked__c != true;
   }
 
   /**

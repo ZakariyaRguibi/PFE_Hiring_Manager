@@ -160,6 +160,20 @@
         <field>Job_Position__c.Application_Deadline__c</field>
         <readable>true</readable>
     </fieldPermissions>
+
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Candidate_Tried_To_Schedule__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Scheduling_Deadline__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    
+
     <fieldPermissions>
         <editable>false</editable>
         <field>Job_Position__c.Portal_Description__c</field>

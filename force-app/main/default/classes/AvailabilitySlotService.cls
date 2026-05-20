@@ -164,10 +164,11 @@ public without sharing class AvailabilitySlotService {
         );
       }
 
-      allSlots.sort(new TimeSlotComparator());
-      stageSlotCache.put(cacheKey, cloneSlots(allSlots));
+      List<TimeSlotDTO> publicSlots = mergeSlotsByDateTime(allSlots);
+      publicSlots.sort(new TimeSlotComparator());
+      stageSlotCache.put(cacheKey, cloneSlots(publicSlots));
 
-      return allSlots;
+      return publicSlots;
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -487,6 +488,10 @@ public without sharing class AvailabilitySlotService {
     return result;
   }
 
+  public static void clearCache() {
+    stageSlotCache.clear();
+  }
+
   public static Date currentMonday() {
     Date today = Date.today();
     Datetime dt = DateTime.newInstance(today, Time.newInstance(0, 0, 0, 0));
@@ -514,6 +519,40 @@ public without sharing class AvailabilitySlotService {
       formatTime(slotStart) +
       ' – ' +
       formatTime(slotEnd);
+  }
+
+  private static List<TimeSlotDTO> mergeSlotsByDateTime(
+    List<TimeSlotDTO> rawSlots
+  ) {
+    Map<String, TimeSlotDTO> byDateTime = new Map<String, TimeSlotDTO>();
+
+    if (rawSlots == null) {
+      return new List<TimeSlotDTO>();
+    }
+
+    for (TimeSlotDTO rawSlot : rawSlots) {
+      if (rawSlot == null || rawSlot.startDt == null || rawSlot.endDt == null) {
+        continue;
+      }
+
+      String key =
+        String.valueOf(rawSlot.startDt.getTime()) +
+        '|' +
+        String.valueOf(rawSlot.endDt.getTime());
+
+      if (!byDateTime.containsKey(key)) {
+        TimeSlotDTO publicSlot = new TimeSlotDTO();
+        publicSlot.label = rawSlot.label;
+        publicSlot.startDt = rawSlot.startDt;
+        publicSlot.endDt = rawSlot.endDt;
+        publicSlot.interviewerId = null;
+        publicSlot.interviewerName = null;
+        publicSlot.availabilitySlotId = null;
+        byDateTime.put(key, publicSlot);
+      }
+    }
+
+    return byDateTime.values();
   }
 
   private static Boolean overlapsAny(
