@@ -9,11 +9,7 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
-    switch on operationType {
-      when BEFORE_INSERT, BEFORE_UPDATE {
-        validateNoOverlappingSlots(newList, oldMap);
-      }
-    }
+    validateNoOverlappingSlots(newList, oldMap);
   }
 
   public static void handleAfterSave(
