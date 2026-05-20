@@ -1,10 +1,17 @@
 /**
- * @description Handles validation logic for Availability_Slot__c triggers.
- * Prevents overlapping availability slots for the same interviewer.
+ * @description Handles validation and retry orchestration for Availability_Slot__c triggers.
  */
 public inherited sharing class AvailabilitySlotTriggerHandler {
+  /**
+   * @description Prevents scheduling retry logic from running when availability records are created internally.
+   */
   public static Boolean skipSchedulingRetry = false;
 
+  /**
+   * @description Runs before-save validation for availability slots.
+   * @param newList New availability slot records.
+   * @param oldMap Previous availability slot values, null on insert.
+   */
   public static void handleBeforeSave(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
@@ -12,6 +19,11 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
     validateNoOverlappingSlots(newList, oldMap);
   }
 
+  /**
+   * @description Runs after-save scheduling retry logic for waiting job applications.
+   * @param newList New availability slot records.
+   * @param oldMap Previous availability slot values, null on insert.
+   */
   public static void handleAfterSave(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
@@ -26,27 +38,11 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
     );
   }
 
-  public static void handle(
-    List<Availability_Slot__c> newList,
-    Map<Id, Availability_Slot__c> oldMap
-  ) {
-    handleBeforeSave(newList, oldMap);
-  }
-
-  public static void handleAfterSave(
-    List<Availability_Slot__c> newList,
-    Map<Id, Availability_Slot__c> oldMap
-  ) {
-    if (skipSchedulingRetry == true) {
-      return;
-    }
-
-    JobApplicationInterviewSchedulingService.handleAvailabilityAfterSave(
-      newList,
-      oldMap
-    );
-  }
-
+  /**
+   * @description Backward-compatible entry point used by older trigger versions.
+   * @param newList New availability slot records.
+   * @param oldMap Previous availability slot values, null on insert.
+   */
   public static void handle(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
@@ -55,16 +51,17 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
   }
 
   /**
-   * @description Collects slots whose interviewer or time window changed.
-   * @param newList records being inserted or updated
-   * @param oldMap previous record state (null on insert)
-   * @return list of slots that require overlap checking
+   * @description Collects records whose interviewer or time window changed.
+   * @param newList New availability slot records.
+   * @param oldMap Previous availability slot values, null on insert.
+   * @return Availability slots that require overlap validation.
    */
   private static List<Availability_Slot__c> collectChanged(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
     List<Availability_Slot__c> toCheck = new List<Availability_Slot__c>();
+
     for (Availability_Slot__c slot : newList) {
       if (
         slot.Interviewer__c == null ||
@@ -73,6 +70,7 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
       ) {
         continue;
       }
+
       if (oldMap != null) {
         Availability_Slot__c old = oldMap.get(slot.Id);
         if (
@@ -83,32 +81,37 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
           continue;
         }
       }
+
       toCheck.add(slot);
     }
+
     return toCheck;
   }
 
   /**
-   * @description Queries existing slots that fall within the bounding box of the candidates.
-   * Uses min/max datetime across all candidates to minimize result set.
-   * @param toCheck slots to check
-   * @return existing slots potentially overlapping with candidates
+   * @description Queries active availability slots that may overlap with the candidate records.
+   * @param toCheck Availability slots being validated.
+   * @return Existing active slots that fall inside the global time range being checked.
    */
   private static List<Availability_Slot__c> queryOverlappingCandidates(
     List<Availability_Slot__c> toCheck
   ) {
     Set<Id> interviewerIds = new Set<Id>();
-    Datetime minStart = null;
-    Datetime maxEnd = null;
+    Datetime minStart;
+    Datetime maxEnd;
+
     for (Availability_Slot__c slot : toCheck) {
       interviewerIds.add(slot.Interviewer__c);
+
       if (minStart == null || slot.Start_DateTime__c < minStart) {
         minStart = slot.Start_DateTime__c;
       }
+
       if (maxEnd == null || slot.End_DateTime__c > maxEnd) {
         maxEnd = slot.End_DateTime__c;
       }
     }
+
     return [
       SELECT
         Id,
@@ -129,50 +132,54 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
   }
 
   /**
-   * @description No overlapping slots for the same interviewer.
-   * Two slots overlap if one starts before the other ends.
-   * @param newList records being inserted or updated
-   * @param oldMap previous record state (null on insert)
+   * @description Validates that positive availability slots do not overlap incorrectly.
+   * @param newList New availability slot records.
+   * @param oldMap Previous availability slot values, null on insert.
    */
   private static void validateNoOverlappingSlots(
     List<Availability_Slot__c> newList,
     Map<Id, Availability_Slot__c> oldMap
   ) {
     List<Availability_Slot__c> toCheck = collectChanged(newList, oldMap);
+
     if (toCheck.isEmpty()) {
       return;
     }
+
     Map<Id, List<Availability_Slot__c>> byInterviewer = groupByInterviewer(
       queryOverlappingCandidates(toCheck)
     );
+
     for (Availability_Slot__c slot : toCheck) {
       checkSlotOverlap(slot, byInterviewer.get(slot.Interviewer__c));
     }
   }
 
   /**
-   * @description Groups existing slots by interviewer Id for efficient lookup.
-   * @param existing list of potentially overlapping slots from SOQL
-   * @return map of interviewerId to their existing slots
+   * @description Groups availability slots by interviewer.
+   * @param existing Existing availability slots.
+   * @return Map keyed by interviewer Id.
    */
   private static Map<Id, List<Availability_Slot__c>> groupByInterviewer(
     List<Availability_Slot__c> existing
   ) {
     Map<Id, List<Availability_Slot__c>> byInterviewer = new Map<Id, List<Availability_Slot__c>>();
+
     for (Availability_Slot__c ex : existing) {
       if (!byInterviewer.containsKey(ex.Interviewer__c)) {
         byInterviewer.put(ex.Interviewer__c, new List<Availability_Slot__c>());
       }
+
       byInterviewer.get(ex.Interviewer__c).add(ex);
     }
+
     return byInterviewer;
   }
 
   /**
-   * @description Checks a single slot against existing candidates for overlap.
-   * Adds a field error if an overlap is detected.
-   * @param slot the slot being inserted or updated
-   * @param candidates existing slots for the same interviewer (may be null)
+   * @description Adds a validation error when a slot overlaps with another active slot.
+   * @param slot Availability slot being validated.
+   * @param candidates Existing slots for the same interviewer.
    */
   private static void checkSlotOverlap(
     Availability_Slot__c slot,
@@ -181,10 +188,12 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
     if (candidates == null) {
       return;
     }
+
     for (Availability_Slot__c ex : candidates) {
       if (ex.Id == slot.Id) {
         continue;
       }
+
       if (
         isAllowedBookedSlotOverlap(slot, ex) ||
         isAllowedBlockedSlotOverlap(slot, ex)
@@ -205,8 +214,10 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
   }
 
   /**
-   * @description Allows a one-time blocked exception to sit inside its parent recurring availability window.
-   * This represents "available every week except this specific date".
+   * @description Allows a one-time blocked exception inside a recurring availability window.
+   * @param slot New blocked exception slot.
+   * @param existingSlot Existing recurring availability window.
+   * @return True when the overlap is allowed.
    */
   private static Boolean isAllowedBlockedSlotOverlap(
     Availability_Slot__c slot,
@@ -220,8 +231,10 @@ public inherited sharing class AvailabilitySlotTriggerHandler {
   }
 
   /**
-   * @description Allows an exact booked appointment slot to sit inside its parent recurring availability window.
-   * Booked slots still conflict with other booked slots, blocked slots, and non-recurring exact slots.
+   * @description Allows a booked one-time appointment inside a recurring availability window.
+   * @param slot New booked appointment slot.
+   * @param existingSlot Existing recurring availability window.
+   * @return True when the overlap is allowed.
    */
   private static Boolean isAllowedBookedSlotOverlap(
     Availability_Slot__c slot,
