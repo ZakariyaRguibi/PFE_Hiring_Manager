@@ -53,6 +53,7 @@ public without sharing class InterviewerAvailabilityController {
         AND (Effective_From__c = NULL
         OR Effective_From__c <= :startDate))
         OR (Is_Recurring__c = FALSE
+        AND Is_Blocked__c = FALSE
         AND Deactivated_Date__c = NULL
         AND Start_DateTime__c >= :weekStartDt
         AND Start_DateTime__c < :weekEndDt))
@@ -75,6 +76,7 @@ public without sharing class InterviewerAvailabilityController {
       }
       slot.Is_Blocked__c = !slot.Is_Blocked__c;
       update as user slot;
+      AvailabilitySlotService.clearCache();
       return slot.Is_Blocked__c;
     } catch (AuraHandledException e) {
       throw e;
@@ -161,6 +163,7 @@ public without sharing class InterviewerAvailabilityController {
           ) {
             existing.Effective_From__c = effectiveFrom;
             update as user existing;
+            AvailabilitySlotService.clearCache();
             return;
           }
           throw new AuraHandledException(
@@ -198,8 +201,10 @@ public without sharing class InterviewerAvailabilityController {
             toDeactivate.add(ot);
           }
         }
-        if (!toDeactivate.isEmpty())
+        if (!toDeactivate.isEmpty()) {
           update as user toDeactivate;
+          AvailabilitySlotService.clearCache();
+        }
 
         // Same-type: deactivate recurring slots fully encompassed by the new one
         List<Availability_Slot__c> encompassed = [
@@ -217,8 +222,10 @@ public without sharing class InterviewerAvailabilityController {
         for (Availability_Slot__c ol : encompassed) {
           ol.Deactivated_Date__c = Date.today();
         }
-        if (!encompassed.isEmpty())
+        if (!encompassed.isEmpty()) {
           update as user encompassed;
+          AvailabilitySlotService.clearCache();
+        }
 
         // Check for remaining partial overlaps (old slot is bigger)
         List<Availability_Slot__c> remaining = [
@@ -268,6 +275,7 @@ public without sharing class InterviewerAvailabilityController {
           Is_Recurring__c = true,
           Effective_From__c = effectiveFrom
         );
+        AvailabilitySlotService.clearCache();
       } else {
         Date weekStartDate = String.isBlank(weekStart)
           ? AvailabilitySlotService.currentMonday()
@@ -323,6 +331,7 @@ public without sharing class InterviewerAvailabilityController {
           Is_Recurring__c = false,
           Is_Blocked__c = false
         );
+        AvailabilitySlotService.clearCache();
       }
     } catch (AuraHandledException e) {
       throw e;
@@ -351,6 +360,7 @@ public without sharing class InterviewerAvailabilityController {
       }
       slot.Deactivated_Date__c = Date.today();
       update as user slot;
+      AvailabilitySlotService.clearCache();
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -381,6 +391,8 @@ public without sharing class InterviewerAvailabilityController {
       Date d = Date.valueOf(targetDate);
       Time startT = window.Start_DateTime__c.time();
       Time endT = window.End_DateTime__c.time();
+      DateTime blockStartDt = DateTime.newInstance(d, startT);
+      DateTime blockEndDt = DateTime.newInstance(d, endT);
 
       List<Availability_Slot__c> existing = [
         SELECT Id
@@ -389,8 +401,8 @@ public without sharing class InterviewerAvailabilityController {
           Interviewer__c = :UserInfo.getUserId()
           AND Is_Recurring__c = FALSE
           AND Is_Blocked__c = TRUE
-          AND Start_DateTime__c = :DateTime.newInstance(d, startT)
-          AND End_DateTime__c = :DateTime.newInstance(d, endT)
+          AND Start_DateTime__c = :blockStartDt
+          AND End_DateTime__c = :blockEndDt
         WITH USER_MODE
       ];
       if (!existing.isEmpty())
@@ -399,11 +411,12 @@ public without sharing class InterviewerAvailabilityController {
       insert as user new Availability_Slot__c(
         Interviewer__c = UserInfo.getUserId(),
         Day_Of_Week__c = window.Day_Of_Week__c,
-        Start_DateTime__c = DateTime.newInstance(d, startT),
-        End_DateTime__c = DateTime.newInstance(d, endT),
+        Start_DateTime__c = blockStartDt,
+        End_DateTime__c = blockEndDt,
         Is_Recurring__c = false,
         Is_Blocked__c = true
       );
+      AvailabilitySlotService.clearCache();
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -431,6 +444,8 @@ public without sharing class InterviewerAvailabilityController {
       Date d = Date.valueOf(targetDate);
       Time startT = window.Start_DateTime__c.time();
       Time endT = window.End_DateTime__c.time();
+      DateTime blockStartDt = DateTime.newInstance(d, startT);
+      DateTime blockEndDt = DateTime.newInstance(d, endT);
 
       List<Availability_Slot__c> blocks = [
         SELECT Id
@@ -439,12 +454,14 @@ public without sharing class InterviewerAvailabilityController {
           Interviewer__c = :UserInfo.getUserId()
           AND Is_Recurring__c = FALSE
           AND Is_Blocked__c = TRUE
-          AND Start_DateTime__c = :DateTime.newInstance(d, startT)
-          AND End_DateTime__c = :DateTime.newInstance(d, endT)
+          AND Start_DateTime__c = :blockStartDt
+          AND End_DateTime__c = :blockEndDt
         WITH USER_MODE
       ];
-      if (!blocks.isEmpty())
+      if (!blocks.isEmpty()) {
         delete as user blocks;
+        AvailabilitySlotService.clearCache();
+      }
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {

@@ -28,6 +28,31 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+    <editable>true</editable>
+    <field>Interview__c.Candidate_Tried_To_Schedule__c</field>
+    <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Candidate_Tried_To_Schedule_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Scheduling_Deadline__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Scheduling_Issue_Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Job_Application__c.Current_Interview_Stage__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Is_Booked__c</field>
         <readable>true</readable>

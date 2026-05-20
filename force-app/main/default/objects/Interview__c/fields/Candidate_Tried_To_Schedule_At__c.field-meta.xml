@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Candidate_Tried_To_Schedule_At__c</fullName>
+    <description
+  >Stores the latest date and time when the candidate attempted to schedule the interview.</description>
+    <inlineHelpText
+  >Updated when the candidate clicks Confirm Schedule or when no slots are available to choose from.</inlineHelpText>
+    <label>Candidate Tried To Schedule At</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>DateTime</type>
+</CustomField>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Candidate_Tried_To_Schedule__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description
+  >Indicates that the candidate clicked Confirm Schedule for this interview. Used by the deadline batch to avoid penalizing candidates who actively tried to reserve a slot.</description>
+    <inlineHelpText
+  >Checked automatically when the candidate confirms a scheduling attempt.</inlineHelpText>
+    <label>Candidate Tried To Schedule</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>
