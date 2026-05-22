@@ -217,7 +217,7 @@ public with sharing class CandidateReviewController {
      * - activeCandidates: promoted to this stage (Current_Interview_Stage__c = stageId, Selected)
      * - waitingCandidates: eligible pool for promotion into this stage
      *
-     * For stage 1: waiting = all Pending applications not yet in any stage
+     * For stage 1: waiting = all new (null) or Pending applications not yet in any stage
      * For stage N: waiting = all Selected applications in stage N-1
      */
     @AuraEnabled
@@ -280,7 +280,7 @@ public with sharing class CandidateReviewController {
         List<Job_Application__c> waitingApps;
 
         if (firstStage) {
-            // Stage 1: all Pending apps not yet assigned to any stage
+            // Stage 1: all new/Pending apps not yet assigned to any stage (null status = brand-new application)
             waitingApps = [
                 SELECT Id, Name, AI_Score__c, Skills_Match_Score__c,
                        Experience_Score__c, Education_Score__c,
@@ -294,7 +294,7 @@ public with sharing class CandidateReviewController {
                        Extracted_Experience__c, Extracted_Education__c
                 FROM Job_Application__c
                 WHERE Job_Position__c = :jobPositionId
-                  AND Selection_Status__c = 'Pending'
+                  AND (Selection_Status__c = 'Pending' OR Selection_Status__c = null)
                   AND Current_Interview_Stage__c = null
                 ORDER BY AI_Score__c DESC NULLS LAST
             ];
