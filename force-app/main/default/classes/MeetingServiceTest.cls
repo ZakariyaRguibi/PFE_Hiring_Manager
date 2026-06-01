@@ -168,18 +168,13 @@ private class MeetingServiceTest {
     Test.stopTest();
 
     Interview__c reloaded = [
-      SELECT
-        Meeting_Provider__c,
-        Meeting_Link__c,
-        Meeting_External_Id__c,
-        Meeting_Created_DateTime__c
+      SELECT Meeting_Provider__c, Meeting_Link__c, Meeting_External_Id__c
       FROM Interview__c
       WHERE Id = :interviewRec.Id
     ];
     System.assertEquals('Google Meet', reloaded.Meeting_Provider__c, 'provider stamped');
     System.assertEquals(result.joinUrl, reloaded.Meeting_Link__c, 'link stamped');
     System.assertEquals('evt-1', reloaded.Meeting_External_Id__c, 'external id stamped');
-    System.assertNotEquals(null, reloaded.Meeting_Created_DateTime__c, 'timestamp set');
   }
 
   @IsTest

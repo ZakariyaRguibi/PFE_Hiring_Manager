@@ -103,7 +103,6 @@ public with sharing class MeetingService {
     record.Meeting_Provider__c = result.provider;
     record.Meeting_Link__c = result.joinUrl;
     record.Meeting_External_Id__c = result.externalMeetingId;
-    record.Meeting_Created_DateTime__c = Datetime.now();
     update record;
   }
 
