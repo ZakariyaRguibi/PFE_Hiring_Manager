@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Effective_From__c</fullName>
-    <label>Effective From</label>
     <description
-  >The Monday of the week this recurring slot becomes effective. Slots only appear on weeks where Monday >= this date.</description>
-    <type>Date</type>
+  >The Monday of the week this recurring slot becomes effective. Slots only appear on weeks where Monday &gt;= this date.</description>
+    <label>Effective From</label>
     <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Date</type>
 </CustomField>

@@ -1,10 +1,17 @@
 trigger AvailabilitySlotTrigger on Availability_Slot__c(
   before insert,
-  before update
+  before update,
+  after insert,
+  after update
 ) {
-  AvailabilitySlotTriggerHandler.handle(
-    Trigger.operationType,
-    Trigger.new,
-    Trigger.oldMap
-  );
+  if (Trigger.isBefore) {
+    AvailabilitySlotTriggerHandler.handleBeforeSave(
+      Trigger.new,
+      Trigger.oldMap
+    );
+  }
+
+  if (Trigger.isAfter) {
+    AvailabilitySlotTriggerHandler.handleAfterSave(Trigger.new, Trigger.oldMap);
+  }
 }

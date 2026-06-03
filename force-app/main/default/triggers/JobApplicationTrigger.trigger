@@ -1,7 +1,8 @@
 trigger JobApplicationTrigger on Job_Application__c(
   before insert,
   before update,
-  after insert
+  after insert,
+  after update
 ) {
   JobApplicationTriggerHandler.handle(
     Trigger.new,

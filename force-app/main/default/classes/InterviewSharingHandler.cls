@@ -1,374 +1,662 @@
 /**
  * @description Handler class for InterviewSharingTrigger.
- *              Manages Apex Managed Sharing for Interview__c and Candidate__c
- *              when an interviewer is assigned, changed, or removed.
- *
- * @author      Hiba Balhirch
- * @version     1.2
+ * Grants and revokes record access for the user assigned as interviewer.
  */
-public with sharing class InterviewSharingHandler {
-  /**
-   * @description Handles after insert.
-   * @param newInterviews Newly inserted interviews
-   */
+public without sharing class InterviewSharingHandler {
+  private static final String STATUS_CANCELLED = 'Cancelled';
+  private static final String STATUS_NO_SHOW = 'No_Show';
+  private static final String STATUS_SCHEDULING_EXPIRED = 'Scheduling_Expired';
+
+  private static final String CANDIDATE_SHARE_OBJECT = 'Candidate__Share';
+  private static final String JOB_POSITION_SHARE_OBJECT = 'Job_Position__Share';
+  private static final String MANUAL_ROW_CAUSE = 'Manual';
+
+  private static final Integer SOQL_SAFETY_LIMIT = 80;
+
+  private static Map<String, Boolean> processedGrantKeys = new Map<String, Boolean>();
+  private static Map<String, Boolean> processedRevokeKeys = new Map<String, Boolean>();
+
   public void onAfterInsert(List<Interview__c> newInterviews) {
     grantAccess(newInterviews);
   }
 
-  /**
-   * @description Handles after update.
-   * @param newInterviews Updated interviews
-   * @param oldMap Previous values
-   */
   public void onAfterUpdate(
     List<Interview__c> newInterviews,
     Map<Id, Interview__c> oldMap
   ) {
-    List<Interview__c> changed = new List<Interview__c>();
-    List<Interview__c> oldChanged = new List<Interview__c>();
+    List<Interview__c> interviewsToGrant = new List<Interview__c>();
+    List<Interview__c> interviewsToRevoke = new List<Interview__c>();
 
-    for (Interview__c inv : newInterviews) {
-      Interview__c oldInv = oldMap.get(inv.Id);
-      if (oldInv != null && inv.Interviewer__c != oldInv.Interviewer__c) {
-        changed.add(inv);
-        oldChanged.add(oldInv);
+    for (Interview__c newInterview : newInterviews) {
+      Interview__c oldInterview = oldMap != null
+        ? oldMap.get(newInterview.Id)
+        : null;
+
+      Boolean isClosed = isClosedStatus(newInterview.Status__c);
+      Boolean interviewerChanged =
+        oldInterview != null &&
+        newInterview.Interviewer__c != oldInterview.Interviewer__c;
+
+      if (
+        oldInterview != null &&
+        oldInterview.Interviewer__c != null &&
+        (interviewerChanged || isClosed)
+      ) {
+        interviewsToRevoke.add(oldInterview);
+      }
+
+      if (!isClosed && newInterview.Interviewer__c != null) {
+        interviewsToGrant.add(newInterview);
       }
     }
 
-    if (changed.isEmpty()) {
-      return;
-    }
-
-    revokeAccess(oldChanged);
-    grantAccess(changed);
+    revokeAccess(interviewsToRevoke);
+    grantAccess(interviewsToGrant);
   }
 
-  /**
-   * @description Handles after delete.
-   * @param oldInterviews Deleted interviews
-   */
   public void onAfterDelete(List<Interview__c> oldInterviews) {
     revokeAccess(oldInterviews);
   }
 
-  /**
-   * @description Grants Interview__Share and Candidate__Share access.
-   * @param interviews Interviews to process
-   */
   private void grantAccess(List<Interview__c> interviews) {
+    if (interviews == null || interviews.isEmpty()) {
+      return;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
+    }
+
     Set<Id> interviewIds = new Set<Id>();
 
-    for (Interview__c inv : interviews) {
-      if (inv.Interviewer__c != null) {
-        interviewIds.add(inv.Id);
+    for (Interview__c interviewRecord : interviews) {
+      if (
+        interviewRecord.Id == null ||
+        interviewRecord.Interviewer__c == null
+      ) {
+        continue;
       }
+
+      String grantKey = buildKey(
+        interviewRecord.Id,
+        interviewRecord.Interviewer__c
+      );
+
+      if (processedGrantKeys.containsKey(grantKey)) {
+        continue;
+      }
+
+      processedGrantKeys.put(grantKey, true);
+      interviewIds.add(interviewRecord.Id);
     }
 
     if (interviewIds.isEmpty()) {
       return;
     }
 
-    if (!Schema.sObjectType.Interview__c.isAccessible()) {
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
       return;
     }
 
-    Map<Id, Interview__c> interviewMap = new Map<Id, Interview__c>(
+    Map<Id, Interview__c> fullInterviews = new Map<Id, Interview__c>(
       [
-        SELECT Id, Interviewer__c, Job_Application__r.Candidate__c
+        SELECT
+          Id,
+          Interviewer__c,
+          Job_Application__c,
+          Job_Application__r.Candidate__c,
+          Job_Application__r.Job_Position__c
         FROM Interview__c
         WHERE Id IN :interviewIds
+        WITH SYSTEM_MODE
       ]
     );
 
-    Set<Id> candidateIds = new Set<Id>();
     Set<Id> interviewerIds = new Set<Id>();
+    Set<Id> candidateIds = new Set<Id>();
+    Set<Id> jobPositionIds = new Set<Id>();
 
-    for (Interview__c fetched : interviewMap.values()) {
-      if (fetched.Interviewer__c != null) {
-        interviewerIds.add(fetched.Interviewer__c);
+    for (Interview__c interviewRecord : fullInterviews.values()) {
+      if (interviewRecord.Interviewer__c != null) {
+        interviewerIds.add(interviewRecord.Interviewer__c);
       }
-      if (
-        fetched.Job_Application__r != null &&
-        fetched.Job_Application__r.Candidate__c != null
-      ) {
-        candidateIds.add(fetched.Job_Application__r.Candidate__c);
-      }
-    }
 
-    Map<String, Id> existingCandidateShareKeys = new Map<String, Id>();
-    if (
-      !candidateIds.isEmpty() &&
-      !interviewerIds.isEmpty() &&
-      Schema.sObjectType.Candidate__Share.isAccessible()
-    ) {
-      for (Candidate__Share shareRec : [
-        SELECT Id, ParentId, UserOrGroupId
-        FROM Candidate__Share
-        WHERE
-          ParentId IN :candidateIds
-          AND UserOrGroupId IN :interviewerIds
-          AND RowCause = 'Manual'
-      ]) {
-        existingCandidateShareKeys.put(
-          buildKey(shareRec.ParentId, shareRec.UserOrGroupId),
-          shareRec.Id
-        );
+      if (interviewRecord.Job_Application__r != null) {
+        if (interviewRecord.Job_Application__r.Candidate__c != null) {
+          candidateIds.add(interviewRecord.Job_Application__r.Candidate__c);
+        }
+
+        if (interviewRecord.Job_Application__r.Job_Position__c != null) {
+          jobPositionIds.add(
+            interviewRecord.Job_Application__r.Job_Position__c
+          );
+        }
       }
     }
 
-    Map<String, Id> existingInterviewShareKeys = new Map<String, Id>();
-    if (
-      !interviewIds.isEmpty() &&
-      !interviewerIds.isEmpty() &&
-      Schema.sObjectType.Interview__Share.isAccessible()
-    ) {
-      for (Interview__Share shareRec : [
-        SELECT Id, ParentId, UserOrGroupId
-        FROM Interview__Share
-        WHERE
-          ParentId IN :interviewIds
-          AND UserOrGroupId IN :interviewerIds
-          AND RowCause = 'Manual'
-      ]) {
-        existingInterviewShareKeys.put(
-          buildKey(shareRec.ParentId, shareRec.UserOrGroupId),
-          shareRec.Id
-        );
-      }
+    if (interviewerIds.isEmpty()) {
+      return;
     }
 
-    List<Candidate__Share> candidateSharesToInsert = new List<Candidate__Share>();
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
+    }
+
+    Map<String, Id> existingInterviewShares = getExistingInterviewShareKeys(
+      fullInterviews.keySet(),
+      interviewerIds
+    );
+
+    Map<String, Id> existingCandidateShares = getExistingDynamicShareKeys(
+      CANDIDATE_SHARE_OBJECT,
+      candidateIds,
+      interviewerIds
+    );
+
+    Map<String, Id> existingJobPositionShares = getExistingDynamicShareKeys(
+      JOB_POSITION_SHARE_OBJECT,
+      jobPositionIds,
+      interviewerIds
+    );
+
     List<Interview__Share> interviewSharesToInsert = new List<Interview__Share>();
+    List<SObject> candidateSharesToInsert = new List<SObject>();
+    List<SObject> jobPositionSharesToInsert = new List<SObject>();
 
-    for (Interview__c inv : interviews) {
-      if (inv.Interviewer__c == null) {
+    for (Interview__c interviewRecord : fullInterviews.values()) {
+      if (interviewRecord.Interviewer__c == null) {
         continue;
       }
 
-      Interview__c fetched = interviewMap.get(inv.Id);
-      if (fetched == null || fetched.Job_Application__r == null) {
-        continue;
-      }
+      String interviewKey = buildKey(
+        interviewRecord.Id,
+        interviewRecord.Interviewer__c
+      );
 
-      Id candidateId = fetched.Job_Application__r.Candidate__c;
-      if (candidateId == null) {
-        continue;
-      }
-
-      String candidateKey = buildKey(candidateId, inv.Interviewer__c);
-      if (!existingCandidateShareKeys.containsKey(candidateKey)) {
-        Candidate__Share candidateShare = new Candidate__Share();
-        candidateShare.ParentId = candidateId;
-        candidateShare.UserOrGroupId = inv.Interviewer__c;
-        candidateShare.AccessLevel = 'Read';
-        candidateShare.RowCause = Schema.Candidate__Share.RowCause.Manual;
-        candidateSharesToInsert.add(candidateShare);
-        existingCandidateShareKeys.put(candidateKey, null);
-      }
-
-      String interviewKey = buildKey(inv.Id, inv.Interviewer__c);
-      if (!existingInterviewShareKeys.containsKey(interviewKey)) {
+      if (!existingInterviewShares.containsKey(interviewKey)) {
         Interview__Share interviewShare = new Interview__Share();
-        interviewShare.ParentId = inv.Id;
-        interviewShare.UserOrGroupId = inv.Interviewer__c;
+        interviewShare.ParentId = interviewRecord.Id;
+        interviewShare.UserOrGroupId = interviewRecord.Interviewer__c;
         interviewShare.AccessLevel = 'Edit';
         interviewShare.RowCause = Schema.Interview__Share.RowCause.Manual;
+
         interviewSharesToInsert.add(interviewShare);
-        existingInterviewShareKeys.put(interviewKey, null);
+        existingInterviewShares.put(interviewKey, null);
+      }
+
+      if (interviewRecord.Job_Application__r != null) {
+        if (interviewRecord.Job_Application__r.Candidate__c != null) {
+          addDynamicShareIfMissing(
+            CANDIDATE_SHARE_OBJECT,
+            interviewRecord.Job_Application__r.Candidate__c,
+            interviewRecord.Interviewer__c,
+            'Read',
+            existingCandidateShares,
+            candidateSharesToInsert
+          );
+        }
+
+        if (interviewRecord.Job_Application__r.Job_Position__c != null) {
+          addDynamicShareIfMissing(
+            JOB_POSITION_SHARE_OBJECT,
+            interviewRecord.Job_Application__r.Job_Position__c,
+            interviewRecord.Interviewer__c,
+            'Read',
+            existingJobPositionShares,
+            jobPositionSharesToInsert
+          );
+        }
       }
     }
 
-    if (
-      !candidateSharesToInsert.isEmpty() &&
-      Schema.sObjectType.Candidate__Share.isCreateable()
-    ) {
-      insert candidateSharesToInsert;
+    if (!interviewSharesToInsert.isEmpty()) {
+      logShareInsertErrors(
+        'Interview__Share',
+        Database.insert(interviewSharesToInsert, false, AccessLevel.SYSTEM_MODE)
+      );
     }
 
-    if (
-      !interviewSharesToInsert.isEmpty() &&
-      Schema.sObjectType.Interview__Share.isCreateable()
-    ) {
-      insert interviewSharesToInsert;
-    }
+    insertDynamicShares(CANDIDATE_SHARE_OBJECT, candidateSharesToInsert);
+    insertDynamicShares(JOB_POSITION_SHARE_OBJECT, jobPositionSharesToInsert);
   }
 
-  /**
-   * @description Revokes Interview__Share and Candidate__Share access.
-   * @param oldInterviews Interviews with removed interviewer access
-   */
   private void revokeAccess(List<Interview__c> oldInterviews) {
     if (oldInterviews == null || oldInterviews.isEmpty()) {
       return;
     }
 
-    Set<Id> interviewIds = new Set<Id>();
-    Set<Id> jobAppIds = new Set<Id>();
-    Set<Id> interviewerIds = new Set<Id>();
-
-    for (Interview__c inv : oldInterviews) {
-      interviewIds.add(inv.Id);
-
-      if (inv.Job_Application__c != null) {
-        jobAppIds.add(inv.Job_Application__c);
-      }
-
-      if (inv.Interviewer__c != null) {
-        interviewerIds.add(inv.Interviewer__c);
-      }
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
     }
 
-    Map<Id, Job_Application__c> jobAppMap = new Map<Id, Job_Application__c>();
-    if (
-      !jobAppIds.isEmpty() &&
-      Schema.sObjectType.Job_Application__c.isAccessible()
-    ) {
-      jobAppMap = new Map<Id, Job_Application__c>(
-        [
-          SELECT Id, Candidate__c
-          FROM Job_Application__c
-          WHERE Id IN :jobAppIds
-        ]
+    Set<Id> interviewIds = new Set<Id>();
+    Set<Id> interviewerIds = new Set<Id>();
+    Map<Id, Id> oldInterviewToInterviewer = new Map<Id, Id>();
+
+    for (Interview__c interviewRecord : oldInterviews) {
+      if (
+        interviewRecord.Id == null ||
+        interviewRecord.Interviewer__c == null
+      ) {
+        continue;
+      }
+
+      String revokeKey = buildKey(
+        interviewRecord.Id,
+        interviewRecord.Interviewer__c
+      );
+
+      if (processedRevokeKeys.containsKey(revokeKey)) {
+        continue;
+      }
+
+      processedRevokeKeys.put(revokeKey, true);
+      interviewIds.add(interviewRecord.Id);
+      interviewerIds.add(interviewRecord.Interviewer__c);
+      oldInterviewToInterviewer.put(
+        interviewRecord.Id,
+        interviewRecord.Interviewer__c
       );
     }
 
-    Set<Id> candidateIds = new Set<Id>();
-    for (Job_Application__c app : jobAppMap.values()) {
-      if (app.Candidate__c != null) {
-        candidateIds.add(app.Candidate__c);
-      }
+    if (interviewIds.isEmpty() || interviewerIds.isEmpty()) {
+      return;
     }
 
-    Map<String, List<Interview__Share>> interviewSharesByKey = new Map<String, List<Interview__Share>>();
-    if (
-      !interviewIds.isEmpty() &&
-      !interviewerIds.isEmpty() &&
-      Schema.sObjectType.Interview__Share.isAccessible()
-    ) {
-      for (Interview__Share shareRec : [
-        SELECT Id, ParentId, UserOrGroupId
-        FROM Interview__Share
-        WHERE
-          ParentId IN :interviewIds
-          AND UserOrGroupId IN :interviewerIds
-          AND RowCause = 'Manual'
-      ]) {
-        String key = buildKey(shareRec.ParentId, shareRec.UserOrGroupId);
-        if (!interviewSharesByKey.containsKey(key)) {
-          interviewSharesByKey.put(key, new List<Interview__Share>());
-        }
-        interviewSharesByKey.get(key).add(shareRec);
-      }
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
     }
 
-    Map<String, Integer> remainingInterviewCounts = new Map<String, Integer>();
-    if (!candidateIds.isEmpty() && !interviewerIds.isEmpty()) {
-      for (Interview__c remaining : [
-        SELECT Id, Interviewer__c, Job_Application__r.Candidate__c
-        FROM Interview__c
-        WHERE
-          Job_Application__r.Candidate__c IN :candidateIds
-          AND Interviewer__c IN :interviewerIds
-          AND Id NOT IN :interviewIds
-          AND Status__c != 'Cancelled'
-          AND Status__c != 'No_Show'
-      ]) {
-        if (
-          remaining.Job_Application__r == null ||
-          remaining.Job_Application__r.Candidate__c == null
-        ) {
-          continue;
+    List<Interview__c> fullOldInterviews = [
+      SELECT
+        Id,
+        Interviewer__c,
+        Job_Application__c,
+        Job_Application__r.Candidate__c,
+        Job_Application__r.Job_Position__c
+      FROM Interview__c
+      WHERE Id IN :interviewIds
+      WITH SYSTEM_MODE
+    ];
+
+    Map<String, Id> candidateUserPairs = new Map<String, Id>();
+    Map<String, Id> jobPositionUserPairs = new Map<String, Id>();
+
+    for (Interview__c interviewRecord : fullOldInterviews) {
+      Id originalInterviewerId = oldInterviewToInterviewer.get(
+        interviewRecord.Id
+      );
+
+      if (originalInterviewerId == null) {
+        continue;
+      }
+
+      if (interviewRecord.Job_Application__r != null) {
+        Id candidateId = interviewRecord.Job_Application__r.Candidate__c;
+        Id jobPositionId = interviewRecord.Job_Application__r.Job_Position__c;
+
+        if (candidateId != null) {
+          candidateUserPairs.put(
+            buildKey(candidateId, originalInterviewerId),
+            candidateId
+          );
         }
 
-        String key = buildKey(
-          remaining.Job_Application__r.Candidate__c,
-          remaining.Interviewer__c
-        );
-        Integer countValue = remainingInterviewCounts.containsKey(key)
-          ? remainingInterviewCounts.get(key)
-          : 0;
-        remainingInterviewCounts.put(key, countValue + 1);
+        if (jobPositionId != null) {
+          jobPositionUserPairs.put(
+            buildKey(jobPositionId, originalInterviewerId),
+            jobPositionId
+          );
+        }
       }
     }
 
-    Map<String, List<Candidate__Share>> candidateSharesByKey = new Map<String, List<Candidate__Share>>();
+    List<Interview__Share> interviewSharesToDelete = getInterviewSharesToDelete(
+      interviewIds,
+      interviewerIds
+    );
+
+    if (!interviewSharesToDelete.isEmpty()) {
+      logShareDeleteErrors(
+        'Interview__Share',
+        Database.delete(interviewSharesToDelete, false, AccessLevel.SYSTEM_MODE)
+      );
+    }
+
+    deleteDynamicShares(
+      CANDIDATE_SHARE_OBJECT,
+      sharesToDeleteFromPairs(
+        CANDIDATE_SHARE_OBJECT,
+        candidateUserPairs,
+        new Set<String>()
+      )
+    );
+
+    deleteDynamicShares(
+      JOB_POSITION_SHARE_OBJECT,
+      sharesToDeleteFromPairs(
+        JOB_POSITION_SHARE_OBJECT,
+        jobPositionUserPairs,
+        new Set<String>()
+      )
+    );
+  }
+
+  private List<SObject> sharesToDeleteFromPairs(
+    String shareObjectName,
+    Map<String, Id> pairMap,
+    Set<String> stillNeededPairs
+  ) {
+    Set<Id> parentIds = new Set<Id>();
+    Set<Id> userIds = new Set<Id>();
+
+    for (String pairKey : pairMap.keySet()) {
+      if (stillNeededPairs.contains(pairKey)) {
+        continue;
+      }
+
+      List<String> parts = pairKey.split('_');
+
+      if (parts.size() == 2) {
+        parentIds.add((Id) parts[0]);
+        userIds.add((Id) parts[1]);
+      }
+    }
+
+    return getDynamicSharesToDelete(shareObjectName, parentIds, userIds);
+  }
+
+  private void addDynamicShareIfMissing(
+    String shareObjectName,
+    Id parentId,
+    Id userId,
+    String accessLevel,
+    Map<String, Id> existingKeys,
+    List<SObject> recordsToInsert
+  ) {
     if (
-      !candidateIds.isEmpty() &&
-      !interviewerIds.isEmpty() &&
-      Schema.sObjectType.Candidate__Share.isAccessible()
+      parentId == null ||
+      userId == null ||
+      !shareObjectExists(shareObjectName)
     ) {
-      for (Candidate__Share shareRec : [
+      return;
+    }
+
+    String key = buildKey(parentId, userId);
+
+    if (existingKeys.containsKey(key)) {
+      return;
+    }
+
+    SObject shareRecord = Schema.getGlobalDescribe()
+      .get(shareObjectName)
+      .newSObject();
+    shareRecord.put('ParentId', parentId);
+    shareRecord.put('UserOrGroupId', userId);
+    shareRecord.put('AccessLevel', accessLevel);
+    shareRecord.put('RowCause', MANUAL_ROW_CAUSE);
+
+    recordsToInsert.add(shareRecord);
+    existingKeys.put(key, null);
+  }
+
+  private void insertDynamicShares(
+    String shareObjectName,
+    List<SObject> shares
+  ) {
+    if (
+      shares == null ||
+      shares.isEmpty() ||
+      !shareObjectExists(shareObjectName)
+    ) {
+      return;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
+    }
+
+    logShareInsertErrors(
+      shareObjectName,
+      Database.insert(shares, false, AccessLevel.SYSTEM_MODE)
+    );
+  }
+
+  private void deleteDynamicShares(
+    String shareObjectName,
+    List<SObject> shares
+  ) {
+    if (
+      shares == null ||
+      shares.isEmpty() ||
+      !shareObjectExists(shareObjectName)
+    ) {
+      return;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return;
+    }
+
+    logShareDeleteErrors(
+      shareObjectName,
+      Database.delete(shares, false, AccessLevel.SYSTEM_MODE)
+    );
+  }
+
+  private List<Interview__Share> getInterviewSharesToDelete(
+    Set<Id> parentIds,
+    Set<Id> userIds
+  ) {
+    if (parentIds.isEmpty() || userIds.isEmpty()) {
+      return new List<Interview__Share>();
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return new List<Interview__Share>();
+    }
+
+    return [
+      SELECT Id
+      FROM Interview__Share
+      WHERE
+        ParentId IN :parentIds
+        AND UserOrGroupId IN :userIds
+        AND RowCause = 'Manual'
+      WITH SYSTEM_MODE
+    ];
+  }
+
+  private Map<String, Id> getExistingInterviewShareKeys(
+    Set<Id> parentIds,
+    Set<Id> userIds
+  ) {
+    Map<String, Id> result = new Map<String, Id>();
+
+    if (parentIds.isEmpty() || userIds.isEmpty()) {
+      return result;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return result;
+    }
+
+    for (Interview__Share shareRecord : [
+      SELECT Id, ParentId, UserOrGroupId
+      FROM Interview__Share
+      WHERE
+        ParentId IN :parentIds
+        AND UserOrGroupId IN :userIds
+        AND RowCause = 'Manual'
+      WITH SYSTEM_MODE
+    ]) {
+      result.put(
+        buildKey(shareRecord.ParentId, shareRecord.UserOrGroupId),
+        shareRecord.Id
+      );
+    }
+
+    return result;
+  }
+
+  private Map<String, Id> getExistingDynamicShareKeys(
+    String shareObjectName,
+    Set<Id> parentIds,
+    Set<Id> userIds
+  ) {
+    Map<String, Id> result = new Map<String, Id>();
+
+    if (
+      parentIds.isEmpty() ||
+      userIds.isEmpty() ||
+      !shareObjectExists(shareObjectName)
+    ) {
+      return result;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return result;
+    }
+
+    if (shareObjectName == CANDIDATE_SHARE_OBJECT) {
+      for (Candidate__Share shareRecord : [
         SELECT Id, ParentId, UserOrGroupId
         FROM Candidate__Share
         WHERE
-          ParentId IN :candidateIds
-          AND UserOrGroupId IN :interviewerIds
+          ParentId IN :parentIds
+          AND UserOrGroupId IN :userIds
           AND RowCause = 'Manual'
+        WITH SYSTEM_MODE
       ]) {
-        String key = buildKey(shareRec.ParentId, shareRec.UserOrGroupId);
-        if (!candidateSharesByKey.containsKey(key)) {
-          candidateSharesByKey.put(key, new List<Candidate__Share>());
+        result.put(
+          buildKey(shareRecord.ParentId, shareRecord.UserOrGroupId),
+          shareRecord.Id
+        );
+      }
+    } else if (shareObjectName == JOB_POSITION_SHARE_OBJECT) {
+      for (Job_Position__Share shareRecord : [
+        SELECT Id, ParentId, UserOrGroupId
+        FROM Job_Position__Share
+        WHERE
+          ParentId IN :parentIds
+          AND UserOrGroupId IN :userIds
+          AND RowCause = 'Manual'
+        WITH SYSTEM_MODE
+      ]) {
+        result.put(
+          buildKey(shareRecord.ParentId, shareRecord.UserOrGroupId),
+          shareRecord.Id
+        );
+      }
+    }
+
+    return result;
+  }
+
+  private List<SObject> getDynamicSharesToDelete(
+    String shareObjectName,
+    Set<Id> parentIds,
+    Set<Id> userIds
+  ) {
+    List<SObject> result = new List<SObject>();
+
+    if (
+      parentIds.isEmpty() ||
+      userIds.isEmpty() ||
+      !shareObjectExists(shareObjectName)
+    ) {
+      return result;
+    }
+
+    if (Limits.getQueries() >= SOQL_SAFETY_LIMIT) {
+      return result;
+    }
+
+    if (shareObjectName == CANDIDATE_SHARE_OBJECT) {
+      for (Candidate__Share shareRecord : [
+        SELECT Id
+        FROM Candidate__Share
+        WHERE
+          ParentId IN :parentIds
+          AND UserOrGroupId IN :userIds
+          AND RowCause = 'Manual'
+        WITH SYSTEM_MODE
+      ]) {
+        result.add(shareRecord);
+      }
+    } else if (shareObjectName == JOB_POSITION_SHARE_OBJECT) {
+      for (Job_Position__Share shareRecord : [
+        SELECT Id
+        FROM Job_Position__Share
+        WHERE
+          ParentId IN :parentIds
+          AND UserOrGroupId IN :userIds
+          AND RowCause = 'Manual'
+        WITH SYSTEM_MODE
+      ]) {
+        result.add(shareRecord);
+      }
+    }
+
+    return result;
+  }
+
+  private Boolean shareObjectExists(String shareObjectName) {
+    return Schema.getGlobalDescribe().containsKey(shareObjectName);
+  }
+
+  private static Boolean isClosedStatus(String statusValue) {
+    return getClosedStatuses().contains(statusValue);
+  }
+
+  private static Set<String> getClosedStatuses() {
+    return new Set<String>{
+      STATUS_CANCELLED,
+      STATUS_NO_SHOW,
+      STATUS_SCHEDULING_EXPIRED
+    };
+  }
+
+  private void logShareInsertErrors(
+    String shareObjectName,
+    List<Database.SaveResult> results
+  ) {
+    for (Database.SaveResult result : results) {
+      if (!result.isSuccess()) {
+        for (Database.Error error : result.getErrors()) {
+          System.debug(
+            LoggingLevel.WARN,
+            shareObjectName +
+              ' insert failed. Status=' +
+              error.getStatusCode() +
+              ', Message=' +
+              error.getMessage()
+          );
         }
-        candidateSharesByKey.get(key).add(shareRec);
       }
-    }
-
-    List<Interview__Share> interviewSharesToDelete = new List<Interview__Share>();
-    List<Candidate__Share> candidateSharesToDelete = new List<Candidate__Share>();
-
-    for (Interview__c oldInv : oldInterviews) {
-      if (oldInv.Interviewer__c == null) {
-        continue;
-      }
-
-      String interviewKey = buildKey(oldInv.Id, oldInv.Interviewer__c);
-      if (interviewSharesByKey.containsKey(interviewKey)) {
-        interviewSharesToDelete.addAll(interviewSharesByKey.get(interviewKey));
-      }
-
-      Job_Application__c jobApp = jobAppMap.get(oldInv.Job_Application__c);
-      if (jobApp == null || jobApp.Candidate__c == null) {
-        continue;
-      }
-
-      String candidateKey = buildKey(
-        jobApp.Candidate__c,
-        oldInv.Interviewer__c
-      );
-      Integer remainingCount = remainingInterviewCounts.containsKey(
-          candidateKey
-        )
-        ? remainingInterviewCounts.get(candidateKey)
-        : 0;
-
-      if (
-        remainingCount == 0 && candidateSharesByKey.containsKey(candidateKey)
-      ) {
-        candidateSharesToDelete.addAll(candidateSharesByKey.get(candidateKey));
-      }
-    }
-
-    if (
-      !interviewSharesToDelete.isEmpty() &&
-      Schema.sObjectType.Interview__Share.isDeletable()
-    ) {
-      delete interviewSharesToDelete;
-    }
-
-    if (
-      !candidateSharesToDelete.isEmpty() &&
-      Schema.sObjectType.Candidate__Share.isDeletable()
-    ) {
-      delete candidateSharesToDelete;
     }
   }
 
-  /**
-   * @description Builds a composite key from parent/user ids.
-   * @param parentId Parent record id
-   * @param userId User or group id
-   * @return Composite key string
-   */
+  private void logShareDeleteErrors(
+    String shareObjectName,
+    List<Database.DeleteResult> results
+  ) {
+    for (Database.DeleteResult result : results) {
+      if (!result.isSuccess()) {
+        for (Database.Error error : result.getErrors()) {
+          System.debug(
+            LoggingLevel.WARN,
+            shareObjectName +
+              ' delete failed. Status=' +
+              error.getStatusCode() +
+              ', Message=' +
+              error.getMessage()
+          );
+        }
+      }
+    }
+  }
+
   private static String buildKey(Id parentId, Id userId) {
     return String.valueOf(parentId) + '_' + String.valueOf(userId);
   }

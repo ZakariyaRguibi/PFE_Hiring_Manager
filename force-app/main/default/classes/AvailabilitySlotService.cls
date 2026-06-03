@@ -1,12 +1,10 @@
 /**
- * @description Computes available interview time slots from recurring availability windows.
- * Handles single-interviewer scheduling, multi-interviewer load-balanced stage scheduling,
- * and HR read-only views. Runs without sharing to access all interviewer data.
+ * @description Computes available interview time slots from recurring and non-recurring availability windows.
+ * Handles single-interviewer scheduling, multi-interviewer stage scheduling, and HR read-only views.
  */
 public without sharing class AvailabilitySlotService {
-  /**
-   * @description Represents a bookable time slot returned to the UI.
-   */
+  private static Map<String, List<TimeSlotDTO>> stageSlotCache = new Map<String, List<TimeSlotDTO>>();
+
   public class TimeSlotDTO {
     @AuraEnabled
     public String label;
@@ -18,14 +16,10 @@ public without sharing class AvailabilitySlotService {
     public String interviewerId;
     @AuraEnabled
     public String interviewerName;
+    @AuraEnabled
+    public String availabilitySlotId;
   }
 
-  /**
-   * @description Returns available time slots for a specific interview's assigned interviewer.
-   * @param interviewId the Interview__c record to schedule
-   * @param weekStart ISO date string for the Monday of the target week (nullable, defaults to current week)
-   * @return list of bookable TimeSlotDTO sorted by start time
-   */
   @AuraEnabled
   public static List<TimeSlotDTO> getAvailableSlotsForInterview(
     Id interviewId,
@@ -42,6 +36,7 @@ public without sharing class AvailabilitySlotService {
         FROM Interview__c
         WHERE Id = :interviewId
         WITH SYSTEM_MODE
+        LIMIT 1
       ];
 
       if (
@@ -54,6 +49,7 @@ public without sharing class AvailabilitySlotService {
             ' and cannot be scheduled.'
         );
       }
+
       if (interview.Interviewer__c == null) {
         throw new AuraHandledException(
           'No interviewer assigned to this interview.'
@@ -74,6 +70,7 @@ public without sharing class AvailabilitySlotService {
         endDate,
         interviewId
       );
+
       result.sort(new TimeSlotComparator());
       return result;
     } catch (AuraHandledException e) {
@@ -85,25 +82,51 @@ public without sharing class AvailabilitySlotService {
     }
   }
 
-  /**
-   * @description Returns all available slots across all interviewers assigned to a stage.
-   * No de-duplication or assignment logic — callers decide how to pick interviewers.
-   * @param stageId the Interview_Stage__c to compute availability for
-   * @param weekStart ISO date string for the Monday of the target week (nullable, defaults to current week)
-   * @return list of bookable TimeSlotDTO sorted by start time
-   */
   @AuraEnabled
   public static List<TimeSlotDTO> getAvailableSlotsForStage(
     Id stageId,
     String weekStart
   ) {
+    return getAvailableSlotsForStageInternal(stageId, weekStart, false);
+  }
+
+  public static List<TimeSlotDTO> getAvailableSlotsForStage(
+    Id stageId,
+    String weekStart,
+    Boolean includePastSlots
+  ) {
+    return getAvailableSlotsForStageInternal(
+      stageId,
+      weekStart,
+      includePastSlots == true
+    );
+  }
+
+  private static List<TimeSlotDTO> getAvailableSlotsForStageInternal(
+    Id stageId,
+    String weekStart,
+    Boolean includePastSlots
+  ) {
+    String cacheKey =
+      String.valueOf(stageId) +
+      '|' +
+      String.valueOf(weekStart) +
+      '|' +
+      String.valueOf(includePastSlots == true);
+
+    if (stageSlotCache.containsKey(cacheKey)) {
+      return cloneSlots(stageSlotCache.get(cacheKey));
+    }
+
     try {
       Interview_Stage__c stage = [
         SELECT Id, Duration_Minutes__c
         FROM Interview_Stage__c
         WHERE Id = :stageId
         WITH SYSTEM_MODE
+        LIMIT 1
       ];
+
       Integer durationMin = parseDuration(stage.Duration_Minutes__c);
 
       List<Interview_Stage_Team_Member__c> members = [
@@ -112,7 +135,9 @@ public without sharing class AvailabilitySlotService {
         WHERE Interview_Stage__c = :stageId
         WITH SYSTEM_MODE
       ];
+
       if (members.isEmpty()) {
+        stageSlotCache.put(cacheKey, new List<TimeSlotDTO>());
         return new List<TimeSlotDTO>();
       }
 
@@ -120,21 +145,30 @@ public without sharing class AvailabilitySlotService {
       Date endDate = startDate.addDays(7);
 
       List<TimeSlotDTO> allSlots = new List<TimeSlotDTO>();
+
       for (Interview_Stage_Team_Member__c member : members) {
+        if (member.Interviewer__c == null) {
+          continue;
+        }
+
         allSlots.addAll(
           computeSlotsForInterviewer(
             member.Interviewer__c,
-            member.Interviewer__r.Name,
+            member.Interviewer__r != null ? member.Interviewer__r.Name : null,
             durationMin,
             startDate,
             endDate,
-            null
+            null,
+            includePastSlots
           )
         );
       }
 
-      allSlots.sort(new TimeSlotComparator());
-      return allSlots;
+      List<TimeSlotDTO> publicSlots = mergeSlotsByDateTime(allSlots);
+      publicSlots.sort(new TimeSlotComparator());
+      stageSlotCache.put(cacheKey, cloneSlots(publicSlots));
+
+      return publicSlots;
     } catch (AuraHandledException e) {
       throw e;
     } catch (Exception e) {
@@ -144,11 +178,6 @@ public without sharing class AvailabilitySlotService {
     }
   }
 
-  /**
-   * @description Returns recurring availability windows for all interviewers assigned to a job position.
-   * @param jobPositionId the Job_Position__c to retrieve windows for
-   * @return list of Availability_Slot__c records ordered by interviewer, day, and start time
-   */
   @AuraEnabled(cacheable=true)
   public static List<Availability_Slot__c> getWindowsForJob(Id jobPositionId) {
     try {
@@ -158,10 +187,15 @@ public without sharing class AvailabilitySlotService {
         WHERE Interview_Stage__r.Job_Position__c = :jobPositionId
         WITH SYSTEM_MODE
       ];
+
       Set<Id> interviewerIds = new Set<Id>();
-      for (Interview_Stage_Team_Member__c m : members) {
-        interviewerIds.add(m.Interviewer__c);
+
+      for (Interview_Stage_Team_Member__c member : members) {
+        if (member.Interviewer__c != null) {
+          interviewerIds.add(member.Interviewer__c);
+        }
       }
+
       if (interviewerIds.isEmpty()) {
         return new List<Availability_Slot__c>();
       }
@@ -174,11 +208,15 @@ public without sharing class AvailabilitySlotService {
           Day_Of_Week__c,
           Start_DateTime__c,
           End_DateTime__c,
-          Is_Blocked__c
+          Is_Recurring__c,
+          Is_Blocked__c,
+          Is_Booked__c
         FROM Availability_Slot__c
         WHERE
           Interviewer__c IN :interviewerIds
-          AND Is_Recurring__c = TRUE
+          AND Is_Blocked__c = FALSE
+          AND (Is_Booked__c = FALSE
+          OR Is_Booked__c = NULL)
           AND Deactivated_Date__c = NULL
         WITH SYSTEM_MODE
         ORDER BY Interviewer__c, Day_Of_Week__c, Start_DateTime__c
@@ -192,17 +230,6 @@ public without sharing class AvailabilitySlotService {
     }
   }
 
-  /**
-   * @description Computes available sub-slots for a single interviewer within a date range.
-   * Expands recurring windows, subtracts blocked periods and booked interviews, then slices into duration-sized slots.
-   * @param interviewerId the interviewer User Id
-   * @param interviewerName the interviewer display name
-   * @param durationMin slot duration in minutes
-   * @param startDate first day of the range (inclusive)
-   * @param endDate last day of the range (exclusive)
-   * @param excludeInterviewId interview Id to exclude from busy intervals (nullable)
-   * @return list of available TimeSlotDTO for this interviewer
-   */
   public static List<TimeSlotDTO> computeSlotsForInterviewer(
     Id interviewerId,
     String interviewerName,
@@ -211,55 +238,146 @@ public without sharing class AvailabilitySlotService {
     Date endDate,
     Id excludeInterviewId
   ) {
+    return computeSlotsForInterviewer(
+      interviewerId,
+      interviewerName,
+      durationMin,
+      startDate,
+      endDate,
+      excludeInterviewId,
+      false
+    );
+  }
+
+  public static List<TimeSlotDTO> computeSlotsForInterviewer(
+    Id interviewerId,
+    String interviewerName,
+    Integer durationMin,
+    Date startDate,
+    Date endDate,
+    Id excludeInterviewId,
+    Boolean includePastSlots
+  ) {
+    if (interviewerId == null || startDate == null || endDate == null) {
+      return new List<TimeSlotDTO>();
+    }
+
+    if (durationMin == null || durationMin <= 0) {
+      durationMin = 60;
+    }
+
+    DateTime rangeStart = DateTime.newInstance(
+      startDate,
+      Time.newInstance(0, 0, 0, 0)
+    );
+    DateTime rangeEnd = DateTime.newInstance(
+      endDate,
+      Time.newInstance(0, 0, 0, 0)
+    );
+
     List<Availability_Slot__c> windows = [
-      SELECT Id, Start_DateTime__c, End_DateTime__c, Day_Of_Week__c
+      SELECT
+        Id,
+        Start_DateTime__c,
+        End_DateTime__c,
+        Day_Of_Week__c,
+        Is_Recurring__c
       FROM Availability_Slot__c
       WHERE
         Interviewer__c = :interviewerId
-        AND Is_Recurring__c = TRUE
         AND Is_Blocked__c = FALSE
+        AND (Is_Booked__c = FALSE
+        OR Is_Booked__c = NULL)
         AND Deactivated_Date__c = NULL
+        AND (Is_Recurring__c = TRUE
+        OR (Is_Recurring__c = FALSE
+        AND Start_DateTime__c >= :rangeStart
+        AND Start_DateTime__c < :rangeEnd))
       WITH SYSTEM_MODE
     ];
+
     if (windows.isEmpty()) {
       return new List<TimeSlotDTO>();
     }
 
-    List<Availability_Slot__c> blocks = [
+    List<DateTime[]> busyIntervals = new List<DateTime[]>();
+
+    for (Availability_Slot__c blockSlot : [
       SELECT Start_DateTime__c, End_DateTime__c
       FROM Availability_Slot__c
       WHERE
         Interviewer__c = :interviewerId
         AND Is_Recurring__c = FALSE
         AND Is_Blocked__c = TRUE
-        AND Start_DateTime__c >= :DateTime.newInstance(
-          startDate,
-          Time.newInstance(0, 0, 0, 0)
-        )
-        AND Start_DateTime__c < :DateTime.newInstance(
-          endDate,
-          Time.newInstance(0, 0, 0, 0)
-        )
+        AND Start_DateTime__c >= :rangeStart
+        AND Start_DateTime__c < :rangeEnd
       WITH SYSTEM_MODE
-    ];
+    ]) {
+      if (
+        blockSlot.Start_DateTime__c != null &&
+        blockSlot.End_DateTime__c != null
+      ) {
+        busyIntervals.add(
+          new List<DateTime>{
+            blockSlot.Start_DateTime__c,
+            blockSlot.End_DateTime__c
+          }
+        );
+      }
+    }
+
+    List<Availability_Slot__c> bookedSlots;
+
+    if (excludeInterviewId == null) {
+      bookedSlots = [
+        SELECT Start_DateTime__c, End_DateTime__c
+        FROM Availability_Slot__c
+        WHERE
+          Interviewer__c = :interviewerId
+          AND Is_Booked__c = TRUE
+          AND Start_DateTime__c >= :rangeStart
+          AND Start_DateTime__c < :rangeEnd
+        WITH SYSTEM_MODE
+      ];
+    } else {
+      bookedSlots = [
+        SELECT Start_DateTime__c, End_DateTime__c
+        FROM Availability_Slot__c
+        WHERE
+          Interviewer__c = :interviewerId
+          AND Is_Booked__c = TRUE
+          AND Start_DateTime__c >= :rangeStart
+          AND Start_DateTime__c < :rangeEnd
+          AND Booked_Interview__c != :excludeInterviewId
+        WITH SYSTEM_MODE
+      ];
+    }
+
+    for (Availability_Slot__c bookedSlot : bookedSlots) {
+      if (
+        bookedSlot.Start_DateTime__c != null &&
+        bookedSlot.End_DateTime__c != null
+      ) {
+        busyIntervals.add(
+          new List<DateTime>{
+            bookedSlot.Start_DateTime__c,
+            bookedSlot.End_DateTime__c
+          }
+        );
+      }
+    }
 
     List<Interview__c> bookedInterviews;
-    if (excludeInterviewId != null) {
+
+    if (excludeInterviewId == null) {
       bookedInterviews = [
         SELECT Scheduled_DateTime__c, Interview_Stage__r.Duration_Minutes__c
         FROM Interview__c
         WHERE
           Interviewer__c = :interviewerId
           AND Status__c != 'Cancelled'
-          AND Scheduled_DateTime__c >= :DateTime.newInstance(
-            startDate,
-            Time.newInstance(0, 0, 0, 0)
-          )
-          AND Scheduled_DateTime__c < :DateTime.newInstance(
-            endDate,
-            Time.newInstance(0, 0, 0, 0)
-          )
-          AND Id != :excludeInterviewId
+          AND Scheduled_DateTime__c >= :rangeStart
+          AND Scheduled_DateTime__c < :rangeEnd
         WITH SYSTEM_MODE
       ];
     } else {
@@ -269,35 +387,26 @@ public without sharing class AvailabilitySlotService {
         WHERE
           Interviewer__c = :interviewerId
           AND Status__c != 'Cancelled'
-          AND Scheduled_DateTime__c >= :DateTime.newInstance(
-            startDate,
-            Time.newInstance(0, 0, 0, 0)
-          )
-          AND Scheduled_DateTime__c < :DateTime.newInstance(
-            endDate,
-            Time.newInstance(0, 0, 0, 0)
-          )
+          AND Scheduled_DateTime__c >= :rangeStart
+          AND Scheduled_DateTime__c < :rangeEnd
+          AND Id != :excludeInterviewId
         WITH SYSTEM_MODE
       ];
     }
 
-    List<DateTime[]> busyIntervals = new List<DateTime[]>();
-    for (Availability_Slot__c b : blocks) {
-      busyIntervals.add(
-        new List<DateTime>{ b.Start_DateTime__c, b.End_DateTime__c }
-      );
-    }
-    for (Interview__c bi : bookedInterviews) {
-      if (bi.Scheduled_DateTime__c == null) {
+    for (Interview__c bookedInterview : bookedInterviews) {
+      if (bookedInterview.Scheduled_DateTime__c == null) {
         continue;
       }
-      Integer bookedDur = parseDuration(
-        bi.Interview_Stage__r.Duration_Minutes__c
+
+      Integer bookedDuration = parseDuration(
+        bookedInterview.Interview_Stage__r.Duration_Minutes__c
       );
+
       busyIntervals.add(
         new List<DateTime>{
-          bi.Scheduled_DateTime__c,
-          bi.Scheduled_DateTime__c.addMinutes(bookedDur)
+          bookedInterview.Scheduled_DateTime__c,
+          bookedInterview.Scheduled_DateTime__c.addMinutes(bookedDuration)
         }
       );
     }
@@ -311,51 +420,83 @@ public without sharing class AvailabilitySlotService {
       'Saturday' => 5,
       'Sunday' => 6
     };
-    List<TimeSlotDTO> result = new List<TimeSlotDTO>();
-    DateTime now = DateTime.now();
 
-    for (Availability_Slot__c win : windows) {
-      Integer offset = dayOffset.get(win.Day_Of_Week__c);
-      if (offset == null) {
+    List<TimeSlotDTO> result = new List<TimeSlotDTO>();
+    DateTime nowDt = DateTime.now();
+
+    for (Availability_Slot__c window : windows) {
+      DateTime windowStart;
+      DateTime windowEnd;
+
+      if (window.Is_Recurring__c == true) {
+        Integer offset = dayOffset.get(window.Day_Of_Week__c);
+
+        if (
+          offset == null ||
+          window.Start_DateTime__c == null ||
+          window.End_DateTime__c == null
+        ) {
+          continue;
+        }
+
+        Date slotDate = startDate.addDays(offset);
+
+        windowStart = DateTime.newInstance(
+          slotDate,
+          window.Start_DateTime__c.time()
+        );
+        windowEnd = DateTime.newInstance(
+          slotDate,
+          window.End_DateTime__c.time()
+        );
+      } else {
+        windowStart = window.Start_DateTime__c;
+        windowEnd = window.End_DateTime__c;
+      }
+
+      if (
+        windowStart == null ||
+        windowEnd == null ||
+        windowStart >= windowEnd
+      ) {
         continue;
       }
 
-      Date slotDate = startDate.addDays(offset);
-      DateTime winStart = DateTime.newInstance(
-        slotDate,
-        win.Start_DateTime__c.time()
-      );
-      DateTime winEnd = DateTime.newInstance(
-        slotDate,
-        win.End_DateTime__c.time()
-      );
+      DateTime cursor = windowStart;
 
-      DateTime cursor = winStart;
-      while (cursor.addMinutes(durationMin) <= winEnd) {
+      while (cursor.addMinutes(durationMin) <= windowEnd) {
         DateTime subEnd = cursor.addMinutes(durationMin);
-        if (cursor >= now && !overlapsAny(cursor, subEnd, busyIntervals)) {
+
+        if (
+          (includePastSlots == true || cursor >= nowDt) &&
+          !overlapsAny(cursor, subEnd, busyIntervals)
+        ) {
           TimeSlotDTO dto = new TimeSlotDTO();
           dto.startDt = cursor;
           dto.endDt = subEnd;
           dto.interviewerId = interviewerId;
           dto.interviewerName = interviewerName;
+          dto.availabilitySlotId = window.Id;
           dto.label = formatSlotLabel(cursor, subEnd);
           result.add(dto);
         }
+
         cursor = cursor.addMinutes(durationMin);
       }
     }
+
     return result;
   }
 
-  /**
-   * @description Returns the Monday of the current week.
-   * @return the Date of the current week's Monday
-   */
+  public static void clearCache() {
+    stageSlotCache.clear();
+  }
+
   public static Date currentMonday() {
     Date today = Date.today();
     Datetime dt = DateTime.newInstance(today, Time.newInstance(0, 0, 0, 0));
     String dayOfWeek = dt.format('EEEE');
+
     Map<String, Integer> backDays = new Map<String, Integer>{
       'Monday' => 0,
       'Tuesday' => 1,
@@ -365,24 +506,53 @@ public without sharing class AvailabilitySlotService {
       'Saturday' => 5,
       'Sunday' => 6
     };
+
     Integer back = backDays.containsKey(dayOfWeek)
       ? backDays.get(dayOfWeek)
       : 0;
     return today.addDays(-back);
   }
 
-  /**
-   * @description Formats a human-readable slot label (e.g. "Mon 09:00 – 10:00").
-   * @param slotStart slot start DateTime
-   * @param slotEnd slot end DateTime
-   * @return formatted label string
-   */
   public static String formatSlotLabel(DateTime slotStart, DateTime slotEnd) {
     return getDayName(slotStart) +
       ' ' +
       formatTime(slotStart) +
       ' – ' +
       formatTime(slotEnd);
+  }
+
+  private static List<TimeSlotDTO> mergeSlotsByDateTime(
+    List<TimeSlotDTO> rawSlots
+  ) {
+    Map<String, TimeSlotDTO> byDateTime = new Map<String, TimeSlotDTO>();
+
+    if (rawSlots == null) {
+      return new List<TimeSlotDTO>();
+    }
+
+    for (TimeSlotDTO rawSlot : rawSlots) {
+      if (rawSlot == null || rawSlot.startDt == null || rawSlot.endDt == null) {
+        continue;
+      }
+
+      String key =
+        String.valueOf(rawSlot.startDt.getTime()) +
+        '|' +
+        String.valueOf(rawSlot.endDt.getTime());
+
+      if (!byDateTime.containsKey(key)) {
+        TimeSlotDTO publicSlot = new TimeSlotDTO();
+        publicSlot.label = rawSlot.label;
+        publicSlot.startDt = rawSlot.startDt;
+        publicSlot.endDt = rawSlot.endDt;
+        publicSlot.interviewerId = null;
+        publicSlot.interviewerName = null;
+        publicSlot.availabilitySlotId = null;
+        byDateTime.put(key, publicSlot);
+      }
+    }
+
+    return byDateTime.values();
   }
 
   private static Boolean overlapsAny(
@@ -395,6 +565,7 @@ public without sharing class AvailabilitySlotService {
         return true;
       }
     }
+
     return false;
   }
 
@@ -417,23 +588,36 @@ public without sharing class AvailabilitySlotService {
   }
 
   private static Integer parseDuration(Decimal durationMinutes) {
-    return (durationMinutes != null) ? Integer.valueOf(durationMinutes) : 60;
+    return durationMinutes != null ? Integer.valueOf(durationMinutes) : 60;
   }
 
-  /**
-   * @description Sorts TimeSlotDTO by startDt ascending.
-   */
+  private static List<TimeSlotDTO> cloneSlots(List<TimeSlotDTO> source) {
+    List<TimeSlotDTO> result = new List<TimeSlotDTO>();
+
+    if (source == null) {
+      return result;
+    }
+
+    for (TimeSlotDTO sourceSlot : source) {
+      TimeSlotDTO cloned = new TimeSlotDTO();
+      cloned.label = sourceSlot.label;
+      cloned.startDt = sourceSlot.startDt;
+      cloned.endDt = sourceSlot.endDt;
+      cloned.interviewerId = sourceSlot.interviewerId;
+      cloned.interviewerName = sourceSlot.interviewerName;
+      cloned.availabilitySlotId = sourceSlot.availabilitySlotId;
+      result.add(cloned);
+    }
+
+    return result;
+  }
+
   private class TimeSlotComparator implements Comparator<TimeSlotDTO> {
-    /**
-     * @description Compares two TimeSlotDTO by startDt.
-     * @param a first slot
-     * @param b second slot
-     * @return -1, 0, or 1
-     */
     public Integer compare(TimeSlotDTO a, TimeSlotDTO b) {
       if (a.startDt == b.startDt) {
         return 0;
       }
+
       return a.startDt < b.startDt ? -1 : 1;
     }
   }
