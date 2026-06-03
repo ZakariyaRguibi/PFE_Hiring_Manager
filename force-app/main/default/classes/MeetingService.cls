@@ -103,7 +103,10 @@ public with sharing class MeetingService {
     record.Meeting_Provider__c = result.provider;
     record.Meeting_Link__c = result.joinUrl;
     record.Meeting_External_Id__c = result.externalMeetingId;
-    update record;
+    // SYSTEM_MODE: the meeting fields are written by the integration only.
+    // Interviewers/candidates have read access (so they can use the link) but
+    // not edit access — a user-triggered click must still be able to stamp.
+    Database.update(record, AccessLevel.SYSTEM_MODE);
   }
 
   @TestVisible

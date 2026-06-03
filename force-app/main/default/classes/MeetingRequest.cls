@@ -43,7 +43,8 @@ public with sharing class MeetingRequest {
 
   /** @description Convenience accessor with a safe default. */
   public Integer effectiveDuration() {
-    return (durationMinutes != null && durationMinutes > 0)
+    return (durationMinutes != null &&
+      durationMinutes > 0)
       ? durationMinutes
       : 30;
   }

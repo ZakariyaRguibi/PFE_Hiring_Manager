@@ -30,11 +30,7 @@ public with sharing class MeetingCallout {
     Integer status = res.getStatusCode();
     if (status < 200 || status >= 300) {
       throw new MeetingException(
-        provider +
-          ' API returned HTTP ' +
-          status +
-          ': ' +
-          res.getBody()
+        provider + ' API returned HTTP ' + status + ': ' + res.getBody()
       );
     }
   }

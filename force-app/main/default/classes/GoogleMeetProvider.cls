@@ -109,7 +109,7 @@ public with sharing class GoogleMeetProvider implements MeetingProvider {
     if (String.isBlank(joinUrl)) {
       throw new MeetingException(
         'Google response had no Meet link (hangoutLink/entryPoints). Body: ' +
-          responseBody
+        responseBody
       );
     }
 
@@ -141,10 +141,7 @@ public with sharing class GoogleMeetProvider implements MeetingProvider {
   }
 
   private String generateRequestId() {
-    return 'tf-' +
-      Crypto.getRandomLong() +
-      '-' +
-      DateTime.now().getTime();
+    return 'tf-' + Crypto.getRandomLong() + '-' + DateTime.now().getTime();
   }
 
   private String stringOr(String value, String fallback) {

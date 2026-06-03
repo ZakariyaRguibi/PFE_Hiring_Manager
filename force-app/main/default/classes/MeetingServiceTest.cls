@@ -172,9 +172,21 @@ private class MeetingServiceTest {
       FROM Interview__c
       WHERE Id = :interviewRec.Id
     ];
-    System.assertEquals('Google Meet', reloaded.Meeting_Provider__c, 'provider stamped');
-    System.assertEquals(result.joinUrl, reloaded.Meeting_Link__c, 'link stamped');
-    System.assertEquals('evt-1', reloaded.Meeting_External_Id__c, 'external id stamped');
+    System.assertEquals(
+      'Google Meet',
+      reloaded.Meeting_Provider__c,
+      'provider stamped'
+    );
+    System.assertEquals(
+      result.joinUrl,
+      reloaded.Meeting_Link__c,
+      'link stamped'
+    );
+    System.assertEquals(
+      'evt-1',
+      reloaded.Meeting_External_Id__c,
+      'external id stamped'
+    );
   }
 
   @IsTest
@@ -197,7 +209,10 @@ private class MeetingServiceTest {
       thrown = true;
     }
     Test.stopTest();
-    System.assert(thrown, 'non-2xx is surfaced to the LWC as AuraHandledException');
+    System.assert(
+      thrown,
+      'non-2xx is surfaced to the LWC as AuraHandledException'
+    );
   }
 
   @IsTest
@@ -207,7 +222,10 @@ private class MeetingServiceTest {
       MeetingService.createMeeting(sampleRequest(null), 'Webex');
     } catch (MeetingException e) {
       thrown = true;
-      System.assert(e.getMessage().contains('Unknown'), 'names the bad provider');
+      System.assert(
+        e.getMessage().contains('Unknown'),
+        'names the bad provider'
+      );
     }
     System.assert(thrown, 'unknown provider must throw');
   }
@@ -246,7 +264,11 @@ private class MeetingServiceTest {
       MeetingService.splitEmails('a@x.com, b@x.com; c@x.com').size(),
       'splits on comma/semicolon/space'
     );
-    System.assertEquals(0, MeetingService.splitEmails(null).size(), 'null -> empty');
+    System.assertEquals(
+      0,
+      MeetingService.splitEmails(null).size(),
+      'null -> empty'
+    );
     System.assertEquals(null, MeetingService.parseIso('  '), 'blank -> null');
     System.assertNotEquals(
       null,

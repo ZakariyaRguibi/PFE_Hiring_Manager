@@ -22,7 +22,11 @@ public with sharing class MeetingResult {
   public MeetingResult() {
   }
 
-  public MeetingResult(String provider, String joinUrl, String externalMeetingId) {
+  public MeetingResult(
+    String provider,
+    String joinUrl,
+    String externalMeetingId
+  ) {
     this.provider = provider;
     this.joinUrl = joinUrl;
     this.externalMeetingId = externalMeetingId;

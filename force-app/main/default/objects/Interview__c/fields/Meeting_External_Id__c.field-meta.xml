@@ -2,7 +2,8 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Meeting_External_Id__c</fullName>
     <label>Meeting External Id</label>
-    <description>Provider-side identifier of the meeting (Google Calendar event id, Zoom meeting id, Teams onlineMeeting id). Kept so the meeting can be cancelled or rescheduled later.</description>
+    <description
+  >Provider-side identifier of the meeting (Google Calendar event id, Zoom meeting id, Teams onlineMeeting id). Kept so the meeting can be cancelled or rescheduled later.</description>
     <externalId>false</externalId>
     <length>255</length>
     <required>false</required>
