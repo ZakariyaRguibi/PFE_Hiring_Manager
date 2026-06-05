@@ -10,6 +10,11 @@
     </classAccesses>
     <description
   >Core permissions for TalentForce Interviewers. Limited access to conduct interviews and manage their own availability.</description>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal
+    >GoogleMeet-GoogleMeet_Principal</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Day_Of_Week__c</field>
