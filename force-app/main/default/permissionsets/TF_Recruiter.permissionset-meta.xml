@@ -2,6 +2,11 @@
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <description
   >Full permissions for TalentForce HR Managers. CRUD on all objects, all fields visible, reports access.</description>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal
+    >GoogleMeet-GoogleMeet_Principal</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>true</editable>
         <field>Availability_Slot__c.Day_Of_Week__c</field>
@@ -45,6 +50,21 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Interview__c.Scheduling_Issue_Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Meeting_External_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Meeting_Link__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Meeting_Provider__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
