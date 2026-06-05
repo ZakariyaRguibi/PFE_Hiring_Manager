@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Vexa_Transcript__c</fullName>
+    <description
+  >Preview-only excerpt (~5k chars) of the transcript. The FULL transcript is attached as a file (transcript-&lt;code&gt;.txt + .json) to the same Interview record, visible in the Files related list. Field is populated by the Vexa webhook receiver after meeting.completed.</description>
+    <externalId>false</externalId>
+    <label>Vexa Transcript</label>
+    <length>131072</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>20</visibleLines>
+</CustomField>

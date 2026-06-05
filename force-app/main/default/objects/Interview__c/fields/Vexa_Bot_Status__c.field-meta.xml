@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Vexa_Bot_Status__c</fullName>
+    <description
+  >Lifecycle of the Vexa bot for this interview. Set by the dispatch action and by the webhook receiver.</description>
+    <externalId>false</externalId>
+    <label>Vexa Bot Status</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Idle</fullName><default>true</default><label
+        >Idle</label></value>
+            <value><fullName>Joining</fullName><default>false</default><label
+        >Joining</label></value>
+            <value><fullName>Recording</fullName><default>false</default><label
+        >Recording</label></value>
+            <value><fullName>Completed</fullName><default>false</default><label
+        >Completed</label></value>
+            <value><fullName>Failed</fullName><default>false</default><label
+        >Failed</label></value>
+            <value><fullName>Stopped</fullName><default>false</default><label
+        >Stopped</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
