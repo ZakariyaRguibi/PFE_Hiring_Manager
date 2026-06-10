@@ -95,6 +95,16 @@ public with sharing class CandidateReviewController {
         @AuraEnabled public String candidateName;
     }
 
+    public class OfferCapacityWarning {
+        @AuraEnabled public Boolean hasWarning;
+        @AuraEnabled public Decimal desiredHires;
+        @AuraEnabled public Decimal filledPositions;
+        @AuraEnabled public Decimal openPositions;
+        @AuraEnabled public String message;
+        @AuraEnabled public Boolean requiresFinalizationDecision;
+        @AuraEnabled public String postFillStrategy;
+    }
+
     @AuraEnabled(cacheable=false)
     public static List<PipelineStageOverview> getPipelineOverview(Id jobPositionId) {
         List<Interview_Stage__c> stages = [
@@ -420,18 +430,119 @@ public with sharing class CandidateReviewController {
         return result;
     }
 
+    @AuraEnabled(cacheable=false)
+    public static OfferCapacityWarning getOfferCapacityWarning(Id applicationId) {
+        Job_Application__c app = [
+            SELECT Id, Job_Position__c
+            FROM Job_Application__c
+            WHERE Id = :applicationId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        // Keep the capacity counters fresh even if the job page has stale values.
+        if (app.Job_Position__c != null) {
+            JobPositionCapacityService.syncCapacityForJobPositions(new Set<Id>{ app.Job_Position__c });
+        }
+
+        JobPositionCapacityService.CapacitySnapshot snapshot =
+            JobPositionCapacityService.getCapacitySnapshot(app.Job_Position__c);
+
+        OfferCapacityWarning warning = new OfferCapacityWarning();
+        warning.hasWarning = snapshot != null && snapshot.desiredHires > 0 && snapshot.openPositions <= 0;
+        warning.desiredHires = snapshot != null ? snapshot.desiredHires : 0;
+        warning.filledPositions = snapshot != null ? snapshot.filledPositions : 0;
+        warning.openPositions = snapshot != null ? snapshot.openPositions : 0;
+        warning.requiresFinalizationDecision = snapshot != null && snapshot.requiresFinalizationDecision == true;
+        warning.postFillStrategy = snapshot != null ? snapshot.postFillStrategy : null;
+        warning.message = warning.hasWarning
+            ? 'This job has no open positions left. Review the target before continuing.'
+            : null;
+        return warning;
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static OfferCapacityWarning getAcceptCapacityWarning(Id applicationId) {
+        OfferCapacityWarning warning = getOfferCapacityWarning(applicationId);
+        if (warning != null && warning.hasWarning == true) {
+            warning.message = 'This hire will exceed the desired number of hires. Review the target before continuing.';
+        }
+        return warning;
+    }
+
     @AuraEnabled
-    public static void extendOffer(Id applicationId) {
+    public static void extendOffer(Id applicationId, Boolean offerAnyway) {
+        Job_Application__c existingApp = [
+            SELECT Id, Job_Position__c
+            FROM Job_Application__c
+            WHERE Id = :applicationId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        // Recalculate first so the warning uses the real current Hired count.
+        if (existingApp.Job_Position__c != null) {
+            JobPositionCapacityService.syncCapacityForJobPositions(new Set<Id>{ existingApp.Job_Position__c });
+        }
+
+        JobPositionCapacityService.CapacitySnapshot snapshot =
+            JobPositionCapacityService.getCapacitySnapshot(existingApp.Job_Position__c);
+
+        if (snapshot != null && snapshot.desiredHires > 0 && snapshot.openPositions <= 0 && offerAnyway != true) {
+            throw new AuraHandledException('This job has no open positions left. Confirm the offer anyway or increase desired hires before continuing.');
+        }
+
         Job_Application__c app = new Job_Application__c(Id = applicationId);
         app.Stage__c = 'Offer';
-        update app;
+
+        Boolean oldBypass = JobPositionCapacityService.bypassPipelineProgressGuard;
+        JobPositionCapacityService.bypassPipelineProgressGuard = offerAnyway == true;
+        try {
+            update app;
+        } finally {
+            JobPositionCapacityService.bypassPipelineProgressGuard = oldBypass;
+        }
     }
 
     @AuraEnabled
     public static void markOfferAccepted(Id applicationId) {
+        markOfferAcceptedWithCapacityDecision(applicationId, false);
+    }
+
+    @AuraEnabled
+    public static void markOfferAcceptedWithCapacityDecision(Id applicationId, Boolean acceptAnyway) {
+        Job_Application__c existingApp = [
+            SELECT Id, Job_Position__c, Stage__c
+            FROM Job_Application__c
+            WHERE Id = :applicationId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        if (existingApp.Job_Position__c != null) {
+            JobPositionCapacityService.syncCapacityForJobPositions(new Set<Id>{ existingApp.Job_Position__c });
+            JobPositionCapacityService.CapacitySnapshot snapshot =
+                JobPositionCapacityService.getCapacitySnapshot(existingApp.Job_Position__c);
+
+            if (snapshot != null && snapshot.desiredHires > 0 && snapshot.openPositions <= 0 && existingApp.Stage__c != 'Hired' && acceptAnyway != true) {
+                throw new AuraHandledException('This job has already reached its hiring target. Confirm this hire anyway or increase desired hires before continuing.');
+            }
+        }
+
         Job_Application__c app = new Job_Application__c(Id = applicationId);
         app.Stage__c = 'Hired';
-        update app;
+
+        Boolean oldBypass = JobPositionCapacityService.bypassPipelineProgressGuard;
+        JobPositionCapacityService.bypassPipelineProgressGuard = acceptAnyway == true;
+        try {
+            update app;
+        } finally {
+            JobPositionCapacityService.bypassPipelineProgressGuard = oldBypass;
+        }
+
+        if (existingApp.Job_Position__c != null) {
+            JobPositionCapacityService.enqueueCapacitySyncForJobPositions(new Set<Id>{ existingApp.Job_Position__c });
+        }
     }
 
     @AuraEnabled
@@ -443,11 +554,51 @@ public with sharing class CandidateReviewController {
 
     @AuraEnabled
     public static void promoteCandidate(Id applicationId, Id stageId) {
-        Job_Application__c app = new Job_Application__c(Id = applicationId);
-        app.Current_Interview_Stage__c = stageId;
-        app.Selection_Status__c = 'Selected';
-        app.Stage__c = 'Interview';
-        update app;
+        if (applicationId == null || stageId == null) {
+            throw new AuraHandledException('Application and interview stage are required.');
+        }
+
+        Job_Application__c existingApp = [
+            SELECT Id, Job_Position__c
+            FROM Job_Application__c
+            WHERE Id = :applicationId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        Interview_Stage__c selectedStage = [
+            SELECT Id, Job_Position__c
+            FROM Interview_Stage__c
+            WHERE Id = :stageId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+
+        if (existingApp.Job_Position__c != selectedStage.Job_Position__c) {
+            throw new AuraHandledException('The selected interview stage does not belong to this application job position.');
+        }
+
+        JobPositionCapacityService.ensureJobNotFinalizedForPipeline(existingApp.Job_Position__c);
+
+        Database.update(
+            new Job_Application__c(
+                Id = applicationId,
+                Current_Interview_Stage__c = stageId,
+                Selection_Status__c = 'Selected',
+                Stage__c = 'Interview'
+            ),
+            AccessLevel.SYSTEM_MODE
+        );
+
+        if (!hasActiveInterview(applicationId, stageId)) {
+            JobApplicationInterviewSchedulingService.createPendingSchedulingInterviews(
+                new Set<Id>{ applicationId }
+            );
+        }
+
+        if (!hasActiveInterview(applicationId, stageId)) {
+            throw new AuraHandledException('No interview was created. Check that the stage has team members and valid availability slots.');
+        }
     }
 
     @AuraEnabled
@@ -566,6 +717,17 @@ public with sharing class CandidateReviewController {
         app.Stage__c = 'Rejected';
         app.Filter_Rejection_Reason__c = reason;
         update app;
+    }
+
+    private static Boolean hasActiveInterview(Id applicationId, Id stageId) {
+        return [
+            SELECT COUNT()
+            FROM Interview__c
+            WHERE Job_Application__c = :applicationId
+              AND Interview_Stage__c = :stageId
+              AND Status__c IN ('Pending_Scheduling', 'Scheduled')
+            WITH SYSTEM_MODE
+        ] > 0;
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
@@ -705,10 +867,20 @@ public with sharing class CandidateReviewController {
         }
     }
 
+    // Candidate-facing self-scheduling page on the Experience Cloud portal.
+    private static final String SCHEDULING_BASE_URL =
+        'https://oreitalent--dev.sandbox.my.site.com/talentforce/self-scheduling';
+
     @AuraEnabled
     public static void markInvitationSent(Id applicationId, Id stageId) {
         List<Interview__c> interviews = [
-            SELECT Id FROM Interview__c
+            SELECT Id, Job_Application__c,
+                   Job_Application__r.Job_Position__r.Title__c,
+                   Interview_Stage__r.Name,
+                   Job_Application__r.Candidate__r.FirstName__c,
+                   Job_Application__r.Candidate__r.LastName__c,
+                   Job_Application__r.Candidate__r.Email__c
+            FROM Interview__c
             WHERE Job_Application__c = :applicationId
               AND Interview_Stage__c = :stageId
             LIMIT 1
@@ -716,8 +888,77 @@ public with sharing class CandidateReviewController {
         if (interviews.isEmpty()) {
             throw new AuraHandledException('No interview found for this candidate at this stage.');
         }
+
+        // Send the invitation email first; if it fails the whole transaction rolls
+        // back so Invitation_Sent__c never reports a send that didn't happen.
+        sendSchedulingInvitation(interviews[0]);
+
         interviews[0].Invitation_Sent__c = true;
         update interviews[0];
+    }
+
+    /**
+     * Emails the candidate inviting them to self-schedule their interview for this stage.
+     * Sends from an Org-Wide Email Address when one is configured, otherwise the running user.
+     */
+    private static void sendSchedulingInvitation(Interview__c iv) {
+        String candidateEmail = iv.Job_Application__r?.Candidate__r?.Email__c;
+        if (String.isBlank(candidateEmail)) {
+            throw new AuraHandledException('Cannot send the invitation: the candidate has no email address on file.');
+        }
+
+        String fn = iv.Job_Application__r?.Candidate__r?.FirstName__c;
+        String greeting = String.isNotBlank(fn) ? 'Hi ' + fn + ',' : 'Hello,';
+        String jobTitle = iv.Job_Application__r?.Job_Position__r?.Title__c;
+        String positionLabel = String.isNotBlank(jobTitle) ? ' for the ' + jobTitle + ' position' : '';
+        String stageName = iv.Interview_Stage__r != null ? iv.Interview_Stage__r.Name : null;
+        String stageLabel = String.isNotBlank(stageName) ? ' (' + stageName + ')' : '';
+
+        String schedulingUrl = SCHEDULING_BASE_URL + '?applicationId=' + iv.Job_Application__c;
+
+        String subject = 'You\'re invited to schedule your interview'
+            + (String.isNotBlank(jobTitle) ? ' — ' + jobTitle : '');
+
+        String htmlBody =
+            '<p>' + greeting + '</p>'
+            + '<p>Congratulations! You\'ve been invited to the next interview stage'
+            + stageLabel + positionLabel + '.</p>'
+            + '<p>Please choose a time that works for you using the link below:</p>'
+            + '<p><a href="' + schedulingUrl + '">Schedule your interview</a></p>'
+            + '<p>If the link doesn\'t open, copy and paste this URL into your browser:<br/>'
+            + schedulingUrl + '</p>'
+            + '<p>We look forward to speaking with you.</p>';
+
+        String plainBody =
+            greeting + '\n\n'
+            + 'Congratulations! You\'ve been invited to the next interview stage'
+            + stageLabel + positionLabel + '.\n\n'
+            + 'Please choose a time that works for you here:\n'
+            + schedulingUrl + '\n\n'
+            + 'We look forward to speaking with you.';
+
+        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+        email.setToAddresses(new List<String>{ candidateEmail });
+        email.setSubject(subject);
+        email.setHtmlBody(htmlBody);
+        email.setPlainTextBody(plainBody);
+        email.setSaveAsActivity(false);
+
+        List<OrgWideEmailAddress> owea = [
+            SELECT Id FROM OrgWideEmailAddress LIMIT 1
+        ];
+        if (!owea.isEmpty()) {
+            email.setOrgWideEmailAddressId(owea[0].Id);
+        }
+
+        Messaging.SendEmailResult[] results =
+            Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ email });
+        if (results != null && !results.isEmpty() && !results[0].isSuccess()) {
+            String err = results[0].getErrors() != null && !results[0].getErrors().isEmpty()
+                ? results[0].getErrors()[0].getMessage()
+                : 'Unknown error';
+            throw new AuraHandledException('Failed to send the invitation email: ' + err);
+        }
     }
 
     private static Boolean isFirstStage(Id jobPositionId, Decimal stageNumber) {
