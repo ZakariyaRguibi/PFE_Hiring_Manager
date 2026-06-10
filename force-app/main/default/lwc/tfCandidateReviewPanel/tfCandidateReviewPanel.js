@@ -104,9 +104,9 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     }
 
     get hasActive()  { return this.stageData?.activeCandidates?.length > 0; }
-    get hasWaiting() { return this.stageData?.waitingCandidates?.length > 0; }
+    get hasWaiting() { return (this.stageData?.waitingTotal ?? this._waitingCandidates.length) > 0; }
     get activeCount()  { return this.stageData?.activeCandidates?.length || 0; }
-    get waitingCount() { return this.stageData?.waitingCandidates?.length || 0; }
+    get waitingCount() { return this.stageData?.waitingTotal ?? this._waitingCandidates.length; }
 
     get activeTabLabel()  {
         return this.isHiredView ? `Offered & Hired (${this.activeCount})` : `Active (${this.activeCount})`;
@@ -216,7 +216,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     async handlePromote(event) {
         event.stopPropagation();
         const appId = event.currentTarget.dataset.appid;
-        const candidate = (this.stageData?.waitingCandidates || []).find(c => c.applicationId === appId);
+        const candidate = this._waitingCandidates.find(c => c.applicationId === appId);
         const ivStatus = candidate?.interviewStatus || 'No Interview';
 
         if (ivStatus !== 'Completed') {
