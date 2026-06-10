@@ -297,6 +297,38 @@
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
+    <!-- Promote without completed interview warning modal -->
+    <template if:true={showPromoteWarningModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="promote-warning-modal-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container promote-warning-modal__container">
+                <header class="slds-modal__header promote-warning-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleClosePromoteWarningModal}></lightning-button-icon>
+                    <div class="promote-warning-modal__heading">
+                        <span class="promote-warning-modal__icon">
+                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Warning"></lightning-icon>
+                        </span>
+                        <div>
+                            <h2 id="promote-warning-modal-title" class="slds-modal__title slds-hyphenate">No completed interview on record</h2>
+                            <p class="promote-warning-modal__subtitle">This candidate hasn't been interviewed yet in Salesforce.</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_small">{promoteWarningBody}</p>
+                    <div class="promote-warning-modal__tip">
+                        To record an interview that happened outside Salesforce, open the <strong>application record</strong> and fill in the interview details before promoting.
+                    </div>
+                </div>
+                <footer class="slds-modal__footer promote-warning-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleClosePromoteWarningModal}></lightning-button>
+                    <lightning-button label="Record Interview First" onclick={handleRecordInterviewFirst} class="slds-m-left_x-small"></lightning-button>
+                    <lightning-button label="Promote Anyway" variant="brand" onclick={handleConfirmPromoteAnyway} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
     <!-- Undo promotion confirmation modal (only shown when there are side effects) -->
     <template if:true={showUndoModal}>
         <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="undo-modal-title" class="slds-modal slds-fade-in-open">

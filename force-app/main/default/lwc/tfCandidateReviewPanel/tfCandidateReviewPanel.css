@@ -283,3 +283,56 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ═══ Promote without completed interview warning modal ═══ */
+.promote-warning-modal__container {
+    max-width: 40rem;
+}
+
+.promote-warning-modal__header {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.promote-warning-modal__heading {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    text-align: left;
+}
+
+.promote-warning-modal__icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: .6rem;
+    background: #fff7e6;
+    border: 1px solid #fed49a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.promote-warning-modal__icon lightning-icon {
+    --sds-c-icon-color-foreground-default: #8a5a00;
+}
+
+.promote-warning-modal__subtitle {
+    margin-top: .2rem;
+    font-size: .8125rem;
+    color: #5c5c5c;
+}
+
+.promote-warning-modal__tip {
+    margin-top: .75rem;
+    padding: .75rem .9rem;
+    border: 1px solid #d8dde6;
+    border-radius: .5rem;
+    background: #f7f9fb;
+    color: #3e3e3c;
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.promote-warning-modal__footer {
+    border-top: 1px solid #e5e5e5;
+}

@@ -44,6 +44,11 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     undoFormattedDate = null;
     isUndoing = false;
 
+    // Promote without completed interview warning modal
+    showPromoteWarningModal = false;
+    promoteWarningAppId = null;
+    promoteWarningInterviewStatus = null;
+
     // Pipeline action guidance modal
     showPipelineActionModal = false;
     pipelineActionModalMessage = '';
@@ -154,6 +159,23 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     }
 
     get isHiredView() { return this._stageId === HIRED_SENTINEL; }
+
+    get promoteWarningBody() {
+        const s = this.promoteWarningInterviewStatus;
+        if (s === 'No Interview') {
+            return 'No interview has been recorded in Salesforce for this candidate at this stage. If they haven\'t been interviewed yet, consider scheduling one first. If the interview happened outside Salesforce, you can record the details on the application record before promoting.';
+        }
+        if (s === 'Pending_Scheduling') {
+            return 'This candidate\'s interview is pending scheduling. Promoting now means they will advance without a completed interview on record. Consider waiting until the interview is scheduled and completed, or record the outcome manually on the application.';
+        }
+        if (s === 'Scheduled') {
+            return 'This candidate has a scheduled interview that hasn\'t been completed yet. Promoting now will advance them before their interview result is recorded. If the interview has already taken place, record the outcome on the application record first.';
+        }
+        if (s === 'Cancelled' || s === 'No_Show') {
+            return 'This candidate\'s interview was ' + (s === 'No_Show' ? 'marked as a no-show' : 'cancelled') + '. You can still promote them, but consider recording a new interview outcome on the application record to keep the pipeline data accurate.';
+        }
+        return 'No completed interview was found for this candidate at this stage. You can still promote them, or record the interview details on the application record first.';
+    }
     get activeStatusColumnLabel() { return this.isHiredView ? 'Status' : 'Recommendation'; }
     get waitingPromoteLabel() { return this.isHiredView ? 'Offer' : 'Promote'; }
     get waitingPromoteVariant() { return this.isHiredView ? 'success' : 'brand'; }
@@ -187,6 +209,49 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     async handlePromote(event) {
         event.stopPropagation();
         const appId = event.currentTarget.dataset.appid;
+        const candidate = (this.stageData?.waitingCandidates || []).find(c => c.applicationId === appId);
+        const ivStatus = candidate?.interviewStatus || 'No Interview';
+
+        if (ivStatus !== 'Completed') {
+            this.promoteWarningAppId = appId;
+            this.promoteWarningInterviewStatus = ivStatus;
+            this.showPromoteWarningModal = true;
+            return;
+        }
+
+        await this._doPromote(appId);
+    }
+
+    async handleConfirmPromoteAnyway() {
+        const appId = this.promoteWarningAppId;
+        this.showPromoteWarningModal = false;
+        this.promoteWarningAppId = null;
+        this.promoteWarningInterviewStatus = null;
+        await this._doPromote(appId);
+    }
+
+    handleClosePromoteWarningModal() {
+        this.showPromoteWarningModal = false;
+        this.promoteWarningAppId = null;
+        this.promoteWarningInterviewStatus = null;
+    }
+
+    handleRecordInterviewFirst() {
+        const appId = this.promoteWarningAppId;
+        this.showPromoteWarningModal = false;
+        this.promoteWarningAppId = null;
+        this.promoteWarningInterviewStatus = null;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: appId,
+                objectApiName: 'Job_Application__c',
+                actionName: 'view'
+            }
+        });
+    }
+
+    async _doPromote(appId) {
         try {
             await promoteCandidate({ applicationId: appId, stageId: this._stageId });
             this._toast('Promoted', 'Candidate promoted to this stage.', 'success');
