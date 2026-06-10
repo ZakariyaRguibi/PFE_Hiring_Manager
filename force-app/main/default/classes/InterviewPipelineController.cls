@@ -48,6 +48,29 @@ public with sharing class InterviewPipelineController {
         return wrappers;
     }
 
+
+    @AuraEnabled(cacheable=true)
+    public static List<Job_Application__c> getRankedApplications(Id jobPositionId) {
+        if (jobPositionId == null) {
+            return new List<Job_Application__c>();
+        }
+
+        return [
+            SELECT Id, Name, Stage__c, Candidate__c,
+                   Candidate__r.FirstName__c, Candidate__r.LastName__c, Candidate__r.Email__c,
+                   Job_Position__c, Current_Interview_Stage__c,
+                   AI_Score__c, Final_Score__c, Skills_Match_Score__c,
+                   Education_Score__c, Experience_Score__c, Keywords_Score__c,
+                   Passed_Hard_Filter__c, AI_Filter_Decision__c,
+                   Filter_Rejection_Reason__c, AI_Scored_At__c,
+                   Filter_Review_Status__c, CreatedDate
+            FROM Job_Application__c
+            WHERE Job_Position__c = :jobPositionId
+              AND Stage__c NOT IN ('Rejected', 'Withdrawn')
+            ORDER BY AI_Score__c DESC NULLS LAST, CreatedDate ASC
+        ];
+    }
+
     // ── Stage mutations ───────────────────────────────────────────────────────
 
     @AuraEnabled
@@ -73,11 +96,41 @@ public with sharing class InterviewPipelineController {
 
     @AuraEnabled
     public static void deleteStage(Id stageId) {
+        Integer activeCandidates = [
+            SELECT COUNT()
+            FROM Job_Application__c
+            WHERE Current_Interview_Stage__c = :stageId
+              AND Selection_Status__c = 'Selected'
+              AND Stage__c = 'Interview'
+            WITH SYSTEM_MODE
+        ];
+        if (activeCandidates > 0) {
+            throw new AuraHandledException(
+                'This stage cannot be deleted because ' + activeCandidates +
+                ' candidate(s) are currently assigned to it. Move or reject them first.'
+            );
+        }
         delete new Interview_Stage__c(Id = stageId);
     }
 
     @AuraEnabled
     public static void reorderStages(List<Id> orderedIds) {
+        // Block reorder if any of the affected stages have active candidates —
+        // reordering changes Stage_Number__c which the undo-promotion logic relies on.
+        Integer activeCandidates = [
+            SELECT COUNT()
+            FROM Job_Application__c
+            WHERE Current_Interview_Stage__c IN :orderedIds
+              AND Selection_Status__c = 'Selected'
+              AND Stage__c = 'Interview'
+            WITH SYSTEM_MODE
+        ];
+        if (activeCandidates > 0) {
+            throw new AuraHandledException(
+                'Stages cannot be reordered while candidates are active in the pipeline. ' +
+                'Move or reject all active candidates first.'
+            );
+        }
         List<Interview_Stage__c> toUpdate = new List<Interview_Stage__c>();
         for (Integer i = 0; i < orderedIds.size(); i++) {
             toUpdate.add(new Interview_Stage__c(Id = orderedIds[i], Stage_Number__c = i + 1));

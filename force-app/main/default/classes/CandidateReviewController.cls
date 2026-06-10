@@ -73,6 +73,7 @@ public with sharing class CandidateReviewController {
         @AuraEnabled public List<StageProgress> allStages;
         @AuraEnabled public List<CandidateCard> activeCandidates;
         @AuraEnabled public List<CandidateCard> waitingCandidates;
+        @AuraEnabled public Integer waitingTotal;
     }
 
     public class PipelineStageOverview {
@@ -230,8 +231,12 @@ public with sharing class CandidateReviewController {
      * For stage 1: waiting = all new (null) or Pending applications not yet in any stage
      * For stage N: waiting = all Selected applications in stage N-1
      */
+    private static final Integer WAITING_PAGE_SIZE = 20;
+
     @AuraEnabled
-    public static StageReviewData getCandidatesForStage(Id jobPositionId, Id stageId) {
+    public static StageReviewData getCandidatesForStage(Id jobPositionId, Id stageId, Integer waitingOffset) {
+        Integer offset = waitingOffset != null ? waitingOffset : 0;
+
         Interview_Stage__c stage = [
             SELECT Id, Name, Stage_Number__c, Passing_Threshold__c
             FROM Interview_Stage__c
@@ -284,14 +289,21 @@ public with sharing class CandidateReviewController {
             ORDER BY AI_Score__c DESC NULLS LAST
         ];
 
-        // Waiting: candidates eligible to be promoted INTO this stage
         Boolean firstStage = isFirstStage(jobPositionId, stage.Stage_Number__c);
         result.isFirstStage = firstStage;
-        List<Job_Application__c> waitingApps;
+
+        result.activeCandidates = buildCards(activeApps);
+        enrichWithInterviewStatus(result.activeCandidates, stageId, stageNameById);
 
         if (firstStage) {
-            // Stage 1: all new/Pending apps not yet assigned to any stage (null status = brand-new application)
-            waitingApps = [
+            result.waitingTotal = [
+                SELECT COUNT()
+                FROM Job_Application__c
+                WHERE Job_Position__c = :jobPositionId
+                  AND (Selection_Status__c = 'Pending' OR Selection_Status__c = null)
+                  AND Current_Interview_Stage__c = null
+            ];
+            List<Job_Application__c> waitingApps = [
                 SELECT Id, Name, AI_Score__c, Skills_Match_Score__c,
                        Experience_Score__c, Education_Score__c,
                        Selection_Status__c, Stage__c, Application_Date__c, Extracted_Skills__c,
@@ -307,12 +319,22 @@ public with sharing class CandidateReviewController {
                   AND (Selection_Status__c = 'Pending' OR Selection_Status__c = null)
                   AND Current_Interview_Stage__c = null
                 ORDER BY AI_Score__c DESC NULLS LAST
+                LIMIT :WAITING_PAGE_SIZE
+                OFFSET :offset
             ];
+            result.waitingCandidates = buildCards(waitingApps);
         } else {
-            // Stage N: all Selected apps currently in the previous stage
             Id previousStageId = getPreviousStageId(jobPositionId, stage.Stage_Number__c);
             if (previousStageId != null) {
-                waitingApps = [
+                result.waitingTotal = [
+                    SELECT COUNT()
+                    FROM Job_Application__c
+                    WHERE Job_Position__c = :jobPositionId
+                      AND Current_Interview_Stage__c = :previousStageId
+                      AND Selection_Status__c = 'Selected'
+                      AND (Stage__c = null OR Stage__c NOT IN ('Offer', 'Hired', 'Withdrawn', 'Rejected'))
+                ];
+                List<Job_Application__c> waitingApps = [
                     SELECT Id, Name, AI_Score__c, Skills_Match_Score__c,
                            Experience_Score__c, Education_Score__c,
                            Selection_Status__c, Stage__c, Application_Date__c, Extracted_Skills__c,
@@ -328,24 +350,20 @@ public with sharing class CandidateReviewController {
                       AND Current_Interview_Stage__c = :previousStageId
                       AND Selection_Status__c = 'Selected'
                       AND (Stage__c = null OR Stage__c NOT IN ('Offer', 'Hired', 'Withdrawn', 'Rejected'))
+                    ORDER BY AI_Score__c DESC NULLS LAST
+                    LIMIT :WAITING_PAGE_SIZE
+                    OFFSET :offset
                 ];
-
                 List<CandidateCard> waitCards = buildCards(waitingApps);
                 enrichWithInterviewStatus(waitCards, previousStageId, stageNameById);
                 waitCards.sort();
-
-                result.activeCandidates = buildCards(activeApps);
-                enrichWithInterviewStatus(result.activeCandidates, stageId, stageNameById);
                 result.waitingCandidates = waitCards;
-                return result;
             } else {
-                waitingApps = new List<Job_Application__c>();
+                result.waitingTotal = 0;
+                result.waitingCandidates = new List<CandidateCard>();
             }
         }
 
-        result.activeCandidates = buildCards(activeApps);
-        enrichWithInterviewStatus(result.activeCandidates, stageId, stageNameById);
-        result.waitingCandidates = buildCards(waitingApps);
         return result;
     }
 
@@ -547,9 +565,22 @@ public with sharing class CandidateReviewController {
 
     @AuraEnabled
     public static void markOfferDeclined(Id applicationId) {
+        Job_Application__c existing = [
+            SELECT Id, Job_Position__c
+            FROM Job_Application__c
+            WHERE Id = :applicationId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
         Job_Application__c app = new Job_Application__c(Id = applicationId);
         app.Stage__c = 'Withdrawn';
         update app;
+        // Declined offer frees up a position — re-sync so open counter reflects reality.
+        if (existing.Job_Position__c != null) {
+            JobPositionCapacityService.enqueueCapacitySyncForJobPositions(
+                new Set<Id>{ existing.Job_Position__c }
+            );
+        }
     }
 
     @AuraEnabled
@@ -558,13 +589,21 @@ public with sharing class CandidateReviewController {
             throw new AuraHandledException('Application and interview stage are required.');
         }
 
+        // FOR UPDATE locks the row so a second concurrent promote on the same
+        // application waits until this transaction commits, preventing double-promotion.
         Job_Application__c existingApp = [
-            SELECT Id, Job_Position__c
+            SELECT Id, Job_Position__c, Current_Interview_Stage__c, Selection_Status__c
             FROM Job_Application__c
             WHERE Id = :applicationId
             WITH SYSTEM_MODE
             LIMIT 1
+            FOR UPDATE
         ];
+
+        if (existingApp.Current_Interview_Stage__c == stageId
+                && existingApp.Selection_Status__c == 'Selected') {
+            throw new AuraHandledException('This candidate has already been promoted to this stage.');
+        }
 
         Interview_Stage__c selectedStage = [
             SELECT Id, Job_Position__c
