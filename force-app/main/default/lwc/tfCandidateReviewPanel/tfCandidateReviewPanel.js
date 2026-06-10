@@ -1,7 +1,8 @@
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import emptyStateMountain from '@salesforce/resourceUrl/tfEmptyStateMountain';
+import { RefreshEvent } from 'lightning/refresh';
+import emptyStateMountain from '@salesforce/resourceUrl/talentforceLogoMn';
 import getCandidatesForStage from '@salesforce/apex/CandidateReviewController.getCandidatesForStage';
 import getHiredReviewData from '@salesforce/apex/CandidateReviewController.getHiredReviewData';
 import promoteCandidate from '@salesforce/apex/CandidateReviewController.promoteCandidate';
@@ -9,8 +10,10 @@ import getUndoImpact from '@salesforce/apex/CandidateReviewController.getUndoImp
 import undoPromotion from '@salesforce/apex/CandidateReviewController.undoPromotion';
 import rejectCandidate from '@salesforce/apex/CandidateReviewController.rejectCandidate';
 import markInvitationSent from '@salesforce/apex/CandidateReviewController.markInvitationSent';
+import getOfferCapacityWarning from '@salesforce/apex/CandidateReviewController.getOfferCapacityWarning';
+import getAcceptCapacityWarning from '@salesforce/apex/CandidateReviewController.getAcceptCapacityWarning';
 import extendOffer from '@salesforce/apex/CandidateReviewController.extendOffer';
-import markOfferAccepted from '@salesforce/apex/CandidateReviewController.markOfferAccepted';
+import markOfferAcceptedWithCapacityDecision from '@salesforce/apex/CandidateReviewController.markOfferAcceptedWithCapacityDecision';
 import markOfferDeclined from '@salesforce/apex/CandidateReviewController.markOfferDeclined';
 
 const HIRED_SENTINEL = '__HIRED__';
@@ -40,6 +43,23 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     undoImpact = null;
     undoFormattedDate = null;
     isUndoing = false;
+
+    // Pipeline action guidance modal
+    showPipelineActionModal = false;
+    pipelineActionModalMessage = '';
+
+    // Capacity confirmation modal
+    showCapacityModal = false;
+    capacityModalMode = null;
+    capacityModalAppId = null;
+    capacityModalTitle = '';
+    capacityModalSubtitle = '';
+    capacityModalBody = '';
+    capacityModalPrimaryLabel = '';
+    capacityDesiredHires = 0;
+    capacityFilledPositions = 0;
+    capacityOpenPositions = 0;
+    isCapacityActionRunning = false;
 
     // Expanded card toggle
     expandedAppId = null;
@@ -127,7 +147,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
                 });
             }
         } catch (e) {
-            this.error = e.body?.message || 'Failed to load candidates.';
+            this.error = this._errorMessage(e, 'Failed to load candidates.');
         } finally {
             this.isLoading = false;
         }
@@ -173,7 +193,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             await this.loadCandidates();
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Promote failed.', 'error');
+            this._handleActionError(e, 'Promote failed.');
         }
     }
 
@@ -181,12 +201,20 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
         event.stopPropagation();
         const appId = event.currentTarget.dataset.appid;
         try {
-            await extendOffer({ applicationId: appId });
+            const warning = await getOfferCapacityWarning({ applicationId: appId });
+
+            if (warning?.hasWarning) {
+                this._openCapacityModal('offer', appId, warning);
+                return;
+            }
+
+            await extendOffer({ applicationId: appId, offerAnyway: false });
             this._toast('Offer extended', 'Candidate moved to the Hired column.', 'success');
             await this.loadCandidates();
+            this.dispatchEvent(new RefreshEvent());
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Extending offer failed.', 'error');
+            this._handleActionError(e, 'Extending offer failed.');
         }
     }
 
@@ -194,12 +222,79 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
         event.stopPropagation();
         const appId = event.currentTarget.dataset.appid;
         try {
-            await markOfferAccepted({ applicationId: appId });
+            const warning = await getAcceptCapacityWarning({ applicationId: appId });
+
+            if (warning?.hasWarning) {
+                this._openCapacityModal('accept', appId, warning);
+                return;
+            }
+
+            await markOfferAcceptedWithCapacityDecision({ applicationId: appId, acceptAnyway: false });
             this._toast('Hired', 'Offer accepted.', 'success');
             await this.loadCandidates();
+            this.dispatchEvent(new RefreshEvent());
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Accept failed.', 'error');
+            this._handleActionError(e, 'Accept failed.');
+        }
+    }
+
+
+    _openCapacityModal(mode, appId, warning) {
+        const desired = warning?.desiredHires ?? 0;
+        const filled = warning?.filledPositions ?? 0;
+        const open = warning?.openPositions ?? 0;
+
+        this.capacityModalMode = mode;
+        this.capacityModalAppId = appId;
+        this.capacityDesiredHires = desired;
+        this.capacityFilledPositions = filled;
+        this.capacityOpenPositions = open;
+
+        if (mode === 'offer') {
+            this.capacityModalTitle = 'Open positions already filled';
+            this.capacityModalSubtitle = 'This job has no open positions left.';
+            this.capacityModalBody = 'You can cancel this offer, open the Pipeline Actions tab to decide how to handle the remaining pipeline, or intentionally extend the offer anyway.';
+            this.capacityModalPrimaryLabel = 'Offer anyway';
+        } else {
+            this.capacityModalTitle = 'Hiring target reached';
+            this.capacityModalSubtitle = 'Accepting this offer may exceed the desired hires.';
+            this.capacityModalBody = 'You can cancel this action, open the Pipeline Actions tab to increase desired hires or choose a finalization strategy, or intentionally accept this offer anyway.';
+            this.capacityModalPrimaryLabel = 'Accept anyway';
+        }
+
+        this.showCapacityModal = true;
+    }
+
+    handleCloseCapacityModal() {
+        if (this.isCapacityActionRunning) return;
+        this.showCapacityModal = false;
+        this.capacityModalMode = null;
+        this.capacityModalAppId = null;
+    }
+
+    async handleConfirmCapacityAction() {
+        if (!this.capacityModalAppId || !this.capacityModalMode) return;
+        this.isCapacityActionRunning = true;
+        try {
+            if (this.capacityModalMode === 'offer') {
+                await extendOffer({ applicationId: this.capacityModalAppId, offerAnyway: true });
+                this._toast('Offer extended', 'Offer extended even though open positions are filled.', 'success');
+            } else {
+                await markOfferAcceptedWithCapacityDecision({ applicationId: this.capacityModalAppId, acceptAnyway: true });
+                this._toast('Hired', 'Offer accepted even though the hiring target is already reached.', 'success');
+            }
+
+            this.showCapacityModal = false;
+            this.capacityModalMode = null;
+            this.capacityModalAppId = null;
+            await this.loadCandidates();
+            this.dispatchEvent(new RefreshEvent());
+            this.dispatchEvent(new CustomEvent('pipelinechanged'));
+        } catch (e) {
+            this._handleActionError(e, this.capacityModalMode === 'offer' ? 'Extending offer failed.' : 'Accept failed.');
+        } finally {
+            this.isCapacityActionRunning = false;
         }
     }
 
@@ -212,7 +307,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             await this.loadCandidates();
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Decline failed.', 'error');
+            this._toast('Error', this._errorMessage(e, 'Decline failed.'), 'error');
         }
     }
 
@@ -224,7 +319,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             this._toast('Invited', 'Candidate has been marked as invited.', 'success');
             await this.loadCandidates();
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Failed to mark invitation.', 'error');
+            this._toast('Error', this._errorMessage(e, 'Failed to mark invitation.'), 'error');
         }
     }
 
@@ -248,7 +343,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
                 : null;
             this.showUndoModal = true;
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Undo failed.', 'error');
+            this._toast('Error', this._errorMessage(e, 'Undo failed.'), 'error');
         }
     }
 
@@ -277,7 +372,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             await this.loadCandidates();
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Undo failed.', 'error');
+            this._toast('Error', this._errorMessage(e, 'Undo failed.'), 'error');
         } finally {
             this.isUndoing = false;
         }
@@ -319,7 +414,7 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             await this.loadCandidates();
             this.dispatchEvent(new CustomEvent('pipelinechanged'));
         } catch (e) {
-            this._toast('Error', e.body?.message || 'Reject failed.', 'error');
+            this._toast('Error', this._errorMessage(e, 'Reject failed.'), 'error');
         }
     }
 
@@ -466,6 +561,73 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
         if (score >= 80)   return 'score-badge score-badge--high';
         if (score >= 60)   return 'score-badge score-badge--medium';
         return 'score-badge score-badge--low';
+    }
+
+
+    _handleActionError(error, fallback) {
+        const message = this._errorMessage(error, fallback);
+        if (this._isPipelineActionRequiredError(message)) {
+            this.pipelineActionModalMessage = message;
+            this.showPipelineActionModal = true;
+            return;
+        }
+        this._toast('Error', message, 'error');
+    }
+
+    _isPipelineActionRequiredError(message) {
+        const normalized = (message || '').toLowerCase();
+        return normalized.includes('hiring target') ||
+            normalized.includes('finalization strategy') ||
+            normalized.includes('increase desired hires') ||
+            normalized.includes('open positions') ||
+            normalized.includes('reached its target');
+    }
+
+    handleClosePipelineActionModal() {
+        this.showPipelineActionModal = false;
+        this.pipelineActionModalMessage = '';
+    }
+
+    handleGoToPipelineActions() {
+        this.showPipelineActionModal = false;
+        this.pipelineActionModalMessage = '';
+        this.showCapacityModal = false;
+        this.capacityModalMode = null;
+        this.capacityModalAppId = null;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.recordId,
+                objectApiName: 'Job_Position__c',
+                actionName: 'view'
+            },
+            state: {
+                c__focus: 'PipelineActions'
+            }
+        });
+    }
+
+    _errorMessage(error, fallback) {
+        if (Array.isArray(error?.body)) {
+            return error.body.map((item) => item.message).filter(Boolean).join(', ') || fallback;
+        }
+        if (error?.body?.pageErrors?.length) {
+            return error.body.pageErrors.map((item) => item.message).filter(Boolean).join(', ') || fallback;
+        }
+        if (error?.body?.fieldErrors) {
+            const messages = [];
+            Object.keys(error.body.fieldErrors).forEach((fieldName) => {
+                error.body.fieldErrors[fieldName].forEach((item) => {
+                    if (item?.message) {
+                        messages.push(item.message);
+                    }
+                });
+            });
+            if (messages.length) {
+                return messages.join(', ');
+            }
+        }
+        return error?.body?.message || error?.message || fallback;
     }
 
     _toast(title, message, variant) {

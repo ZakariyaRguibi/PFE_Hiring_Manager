@@ -217,6 +217,86 @@
         </template>
     </template>
 
+
+
+    <!-- Capacity confirmation modal: offer / accept when target is reached -->
+    <template if:true={showCapacityModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="capacity-modal-title" class="slds-modal slds-fade-in-open capacity-modal">
+            <div class="slds-modal__container capacity-modal__container">
+                <header class="slds-modal__header capacity-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleCloseCapacityModal}></lightning-button-icon>
+                    <div class="capacity-modal__heading">
+                        <span class="capacity-modal__icon">
+                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Warning"></lightning-icon>
+                        </span>
+                        <div>
+                            <h2 id="capacity-modal-title" class="slds-modal__title slds-hyphenate">{capacityModalTitle}</h2>
+                            <p class="capacity-modal__subtitle">{capacityModalSubtitle}</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium capacity-modal__content">
+                    <div class="capacity-metrics" aria-label="Hiring capacity">
+                        <div class="capacity-metric">
+                            <span>Desired hires</span>
+                            <strong>{capacityDesiredHires}</strong>
+                        </div>
+                        <div class="capacity-metric">
+                            <span>Filled positions</span>
+                            <strong>{capacityFilledPositions}</strong>
+                        </div>
+                        <div class="capacity-metric capacity-metric--zero">
+                            <span>Open positions</span>
+                            <strong>{capacityOpenPositions}</strong>
+                        </div>
+                    </div>
+                    <p class="capacity-modal__body">{capacityModalBody}</p>
+                    <div class="capacity-modal__tip">
+                        The Pipeline Actions tab contains the finalization choices for this job: close the remaining pipeline, complete already scheduled interviews before closing, or increase desired hires.
+                    </div>
+                </div>
+                <footer class="slds-modal__footer capacity-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseCapacityModal} disabled={isCapacityActionRunning}></lightning-button>
+                    <lightning-button label="ok" onclick={handleGoToPipelineActions} disabled={isCapacityActionRunning} class="slds-m-left_x-small"></lightning-button>
+                    <lightning-button label={capacityModalPrimaryLabel} variant="brand" onclick={handleConfirmCapacityAction} disabled={isCapacityActionRunning} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Pipeline action required modal -->
+    <template if:true={showPipelineActionModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="pipeline-action-modal-title" class="slds-modal slds-fade-in-open pipeline-action-modal">
+            <div class="slds-modal__container pipeline-action-modal__container">
+                <header class="slds-modal__header pipeline-action-modal__header">
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare-inverse" class="slds-modal__close" onclick={handleClosePipelineActionModal}></lightning-button-icon>
+                    <div class="pipeline-action-modal__heading">
+                        <span class="pipeline-action-modal__icon">
+                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Warning"></lightning-icon>
+                        </span>
+                        <div>
+                            <h2 id="pipeline-action-modal-title" class="slds-modal__title slds-hyphenate">Hiring target reached</h2>
+                            <p class="pipeline-action-modal__subtitle">This job has no open positions left.</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium pipeline-action-modal__content">
+                    <p class="slds-text-body_regular slds-m-bottom_small">{pipelineActionModalMessage}</p>
+                    <div class="pipeline-action-modal__info">
+                        Open the <strong>Pipeline Actions</strong> tab on the Job Position page to choose one of the available strategies:
+                        close the remaining pipeline, complete already scheduled interviews before closing, or increase desired hires.
+                    </div>
+                </div>
+                <footer class="slds-modal__footer pipeline-action-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleClosePipelineActionModal}></lightning-button>
+                    <lightning-button label="OK" variant="brand" onclick={handleGoToPipelineActions} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
     <!-- Undo promotion confirmation modal (only shown when there are side effects) -->
     <template if:true={showUndoModal}>
         <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="undo-modal-title" class="slds-modal slds-fade-in-open">

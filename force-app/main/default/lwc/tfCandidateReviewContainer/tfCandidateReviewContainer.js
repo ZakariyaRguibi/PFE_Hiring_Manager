@@ -1,5 +1,5 @@
 import { LightningElement, api } from 'lwc';
-import emptyStateMountain from '@salesforce/resourceUrl/tfEmptyStateMountain';
+import emptyStateMountain from '@salesforce/resourceUrl/talentforceLogoMn';
 
 export default class TfCandidateReviewContainer extends LightningElement {
     @api recordId;

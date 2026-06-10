@@ -2,7 +2,7 @@ import { LightningElement, api, wire, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { refreshApex } from '@salesforce/apex';
 import { registerRefreshHandler, unregisterRefreshHandler } from 'lightning/refresh';
-import emptyStateMountain from '@salesforce/resourceUrl/tfEmptyStateMountain';
+import emptyStateMountain from '@salesforce/resourceUrl/talentforceLogoMn';
 import getStages from '@salesforce/apex/InterviewPipelineController.getStages';
 import getPipelineOverview from '@salesforce/apex/CandidateReviewController.getPipelineOverview';
 import saveStage from '@salesforce/apex/InterviewPipelineController.saveStage';
