@@ -361,7 +361,7 @@ export default class TfInterviewPipeline extends LightningElement {
             await refreshApex(this._wiredResult);
             await this.loadPipelineOverview();
         } catch (e) {
-            this._toast('Error', 'Reorder failed.', 'error');
+            this._toast('Error', e.body?.message || 'Reorder failed.', 'error');
             await refreshApex(this._wiredResult);
         }
     }

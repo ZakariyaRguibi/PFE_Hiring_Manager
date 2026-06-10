@@ -19,6 +19,7 @@ import markOfferDeclined from '@salesforce/apex/CandidateReviewController.markOf
 const HIRED_SENTINEL = '__HIRED__';
 
 const DEFAULT_PAGE_SIZE = 10;
+const WAITING_PAGE_SIZE = 3;
 
 export default class TfCandidateReviewPanel extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -28,7 +29,9 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     stageData;
     isLoading = false;
     error;
-    showAllWaiting = false;
+    _waitingOffset = 0;
+    _waitingCandidates = [];
+    isLoadingMore = false;
     activeTab = 'active';
 
     // Reject modal
@@ -76,7 +79,8 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     set stageId(value) {
         if (value !== this._stageId) {
             this._stageId = value;
-            this.showAllWaiting = false;
+            this._waitingOffset = 0;
+            this._waitingCandidates = [];
             this.activeTab = 'active';
             this.expandedAppId = null;
             this.loadCandidates();
@@ -119,21 +123,19 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
         );
         return this._enrichList(sorted, true);
     }
-    get enrichedWaiting() { return this._enrichList(this.stageData?.waitingCandidates || [], !this.stageData?.isFirstStage); }
+    get enrichedWaiting() { return this._enrichList(this._waitingCandidates, !this.stageData?.isFirstStage); }
 
-    get visibleWaiting() {
-        if (this.showAllWaiting) return this.enrichedWaiting;
-        return this.enrichedWaiting.slice(0, DEFAULT_PAGE_SIZE);
-    }
+    get visibleWaiting() { return this.enrichedWaiting; }
 
     get hasMoreWaiting() {
-        return this.enrichedWaiting.length > DEFAULT_PAGE_SIZE;
+        const total = this.stageData?.waitingTotal ?? 0;
+        return this._waitingCandidates.length < total;
     }
 
     get viewAllLabel() {
-        return this.showAllWaiting
-            ? 'Show less'
-            : `View all ${this.enrichedWaiting.length} candidates`;
+        const total = this.stageData?.waitingTotal ?? 0;
+        const remaining = total - this._waitingCandidates.length;
+        return `Load more (${remaining} remaining)`;
     }
 
     // ── Data loading ────────────────────────────────────────────────────
@@ -146,10 +148,15 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
             if (this._stageId === HIRED_SENTINEL) {
                 this.stageData = await getHiredReviewData({ jobPositionId: this.recordId });
             } else {
-                this.stageData = await getCandidatesForStage({
+                this._waitingOffset = 0;
+                this._waitingCandidates = [];
+                const data = await getCandidatesForStage({
                     jobPositionId: this.recordId,
-                    stageId: this._stageId
+                    stageId: this._stageId,
+                    waitingOffset: 0
                 });
+                this._waitingCandidates = data?.waitingCandidates || [];
+                this.stageData = data;
             }
         } catch (e) {
             this.error = this._errorMessage(e, 'Failed to load candidates.');
@@ -499,8 +506,27 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
         this.expandedAppId = null;
     }
 
-    handleToggleViewAll() {
-        this.showAllWaiting = !this.showAllWaiting;
+    async handleLoadMoreWaiting() {
+        if (this.isLoadingMore || !this.hasMoreWaiting) return;
+        this.isLoadingMore = true;
+        try {
+            const nextOffset = this._waitingOffset + WAITING_PAGE_SIZE;
+            const data = await getCandidatesForStage({
+                jobPositionId: this.recordId,
+                stageId: this._stageId,
+                waitingOffset: nextOffset
+            });
+            this._waitingCandidates = [...this._waitingCandidates, ...(data?.waitingCandidates || [])];
+            this._waitingOffset = nextOffset;
+            // Keep totals in sync without replacing active candidates
+            if (this.stageData) {
+                this.stageData = { ...this.stageData, waitingTotal: data?.waitingTotal };
+            }
+        } catch (e) {
+            this._toast('Error', this._errorMessage(e, 'Failed to load more candidates.'), 'error');
+        } finally {
+            this.isLoadingMore = false;
+        }
     }
 
     handleRowClick(event) {

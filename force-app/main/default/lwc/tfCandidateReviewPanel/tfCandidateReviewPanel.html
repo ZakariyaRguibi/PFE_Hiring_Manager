@@ -198,7 +198,12 @@
                                     </table>
                                     <template if:true={hasMoreWaiting}>
                                         <div class="slds-text-align_center slds-m-top_small slds-m-bottom_small">
-                                            <lightning-button label={viewAllLabel} variant="base" onclick={handleToggleViewAll}></lightning-button>
+                                            <template if:true={isLoadingMore}>
+                                                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                            </template>
+                                            <template if:false={isLoadingMore}>
+                                                <lightning-button label={viewAllLabel} variant="base" onclick={handleLoadMoreWaiting}></lightning-button>
+                                            </template>
                                         </div>
                                     </template>
                                 </template>
