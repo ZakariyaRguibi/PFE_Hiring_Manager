@@ -657,7 +657,9 @@ public with sharing class CandidateReviewController {
     @AuraEnabled
     public static void undoPromotion(Id applicationId, String reason) {
         Job_Application__c app = [
-            SELECT Id, Current_Interview_Stage__c
+            SELECT Id, Current_Interview_Stage__c,
+                   Current_Interview_Stage__r.Stage_Number__c,
+                   Current_Interview_Stage__r.Job_Position__c
             FROM Job_Application__c
             WHERE Id = :applicationId
             LIMIT 1
@@ -701,9 +703,35 @@ public with sharing class CandidateReviewController {
             update toUpdate;
         }
 
-        app.Current_Interview_Stage__c = null;
-        app.Selection_Status__c = 'Pending';
-        app.Stage__c = 'New';
+        // Find the previous stage (Stage_Number - 1) so the candidate goes back
+        // to where they came from, not all the way to the waiting list.
+        Id previousStageId = null;
+        if (app.Current_Interview_Stage__c != null) {
+            Decimal currentNumber = app.Current_Interview_Stage__r.Stage_Number__c;
+            Id jobPositionId = app.Current_Interview_Stage__r.Job_Position__c;
+            if (currentNumber != null && currentNumber > 1 && jobPositionId != null) {
+                List<Interview_Stage__c> prevStages = [
+                    SELECT Id
+                    FROM Interview_Stage__c
+                    WHERE Job_Position__c = :jobPositionId
+                      AND Stage_Number__c = :( currentNumber - 1 )
+                    LIMIT 1
+                ];
+                if (!prevStages.isEmpty()) {
+                    previousStageId = prevStages[0].Id;
+                }
+            }
+        }
+
+        if (previousStageId != null) {
+            app.Current_Interview_Stage__c = previousStageId;
+            app.Selection_Status__c = 'Selected';
+            app.Stage__c = 'Interview';
+        } else {
+            app.Current_Interview_Stage__c = null;
+            app.Selection_Status__c = 'Pending';
+            app.Stage__c = 'New';
+        }
         update app;
     }
 
