@@ -93,8 +93,9 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
 
     // ── Getters ─────────────────────────────────────────────────────────
 
-    get isActiveTab()  { return this.activeTab === 'active'; }
-    get isWaitingTab() { return this.activeTab === 'waiting'; }
+    get isActiveTab()   { return this.activeTab === 'active'; }
+    get isWaitingTab()  { return this.activeTab === 'waiting'; }
+    get isRejectedTab() { return this.activeTab === 'rejected'; }
 
     get activeTabClass() {
         return 'slds-tabs_default__item' + (this.isActiveTab ? ' slds-is-active' : '');
@@ -102,11 +103,16 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     get waitingTabClass() {
         return 'slds-tabs_default__item' + (this.isWaitingTab ? ' slds-is-active' : '');
     }
+    get rejectedTabClass() {
+        return 'slds-tabs_default__item' + (this.isRejectedTab ? ' slds-is-active' : '');
+    }
 
-    get hasActive()  { return this.stageData?.activeCandidates?.length > 0; }
-    get hasWaiting() { return (this.stageData?.waitingTotal ?? this._waitingCandidates.length) > 0; }
+    get hasActive()    { return this.stageData?.activeCandidates?.length > 0; }
+    get hasWaiting()   { return (this.stageData?.waitingTotal ?? this._waitingCandidates.length) > 0; }
+    get hasRejected()  { return this.stageData?.rejectedCandidates?.length > 0; }
     get activeCount()  { return this.stageData?.activeCandidates?.length || 0; }
     get waitingCount() { return this.stageData?.waitingTotal ?? this._waitingCandidates.length; }
+    get rejectedCount() { return this.stageData?.rejectedCandidates?.length || 0; }
 
     get activeTabLabel()  {
         return this.isHiredView ? `Offered & Hired (${this.activeCount})` : `Active (${this.activeCount})`;
@@ -114,6 +120,8 @@ export default class TfCandidateReviewPanel extends NavigationMixin(LightningEle
     get waitingTabLabel() {
         return this.isHiredView ? `Ready for Offer (${this.waitingCount})` : `Waiting List (${this.waitingCount})`;
     }
+    get rejectedTabLabel() { return `Rejected (${this.rejectedCount})`; }
+    get enrichedRejected() { return this._enrichList(this.stageData?.rejectedCandidates || [], false); }
     get waitingScoreLabel() { return this.stageData?.isFirstStage ? 'AI Score' : 'Prev. Score'; }
     get allStages() { return this.stageData?.allStages || []; }
 

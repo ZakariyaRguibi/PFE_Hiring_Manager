@@ -31,6 +31,9 @@
                             <li class={waitingTabClass} role="presentation" data-tab="waiting" onclick={handleTabClick}>
                                 <a class="slds-tabs_default__link" role="tab" tabindex="-1">{waitingTabLabel}</a>
                             </li>
+                            <li class={rejectedTabClass} role="presentation" data-tab="rejected" onclick={handleTabClick}>
+                                <a class="slds-tabs_default__link" role="tab" tabindex="-1">{rejectedTabLabel}</a>
+                            </li>
                         </ul>
 
                         <!-- ═══ Active Candidates ═══ -->
@@ -212,6 +215,50 @@
                                         <img src={emptyStateImg} alt="" class="tab-empty__art"/>
                                         <h3 class="tab-empty__title">{emptyWaitingTitle}</h3>
                                         <p class="tab-empty__text">{emptyWaitingText}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- ═══ Rejected Candidates ═══ -->
+                        <template if:true={isRejectedTab}>
+                            <div class="slds-tabs_default__content slds-show" role="tabpanel">
+                                <template if:true={hasRejected}>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-no-row-hover">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th scope="col" style="width:3rem"></th>
+                                                <th scope="col"><div class="slds-truncate" title="Candidate">Candidate</div></th>
+                                                <th scope="col" style="width:7rem"><div class="slds-truncate" title="AI Score">AI Score</div></th>
+                                                <th scope="col"><div class="slds-truncate" title="Rejection Reason">Rejection Reason</div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={enrichedRejected} for:item="c">
+                                                <tr key={c.applicationId} class="slds-hint-parent">
+                                                    <td>
+                                                        <lightning-avatar fallback-icon-name="standard:user" initials={c.candidateInitials} size="small" variant="circle"></lightning-avatar>
+                                                    </td>
+                                                    <td>
+                                                        <a data-appid={c.applicationId} onclick={handleNavToApp} class="slds-text-link">{c.candidateName}</a>
+                                                        <p class="slds-text-body_small slds-text-color_weak">{c.experienceLabel} &bull; {c.educationLabel}</p>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-badge label={c.scoreLabel} class={c.scoreBadgeClass}></lightning-badge>
+                                                    </td>
+                                                    <td>
+                                                        <span class="slds-text-body_small">{c.rejectionReason}</span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </template>
+                                <template if:false={hasRejected}>
+                                    <div class="tab-empty">
+                                        <img src={emptyStateImg} alt="" class="tab-empty__art"/>
+                                        <h3 class="tab-empty__title">No rejected candidates</h3>
+                                        <p class="tab-empty__text">Candidates rejected at this stage will appear here.</p>
                                     </div>
                                 </template>
                             </div>
