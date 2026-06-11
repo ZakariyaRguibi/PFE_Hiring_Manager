@@ -75,6 +75,8 @@ public with sharing class CandidateReviewController {
     public Datetime scheduledDateTime;
     @AuraEnabled
     public List<InterviewerReview> interviewerReviews;
+    @AuraEnabled
+    public String rejectionReason;
 
     public Integer compareTo(Object other) {
       CandidateCard o = (CandidateCard) other;
@@ -131,6 +133,8 @@ public with sharing class CandidateReviewController {
     public List<CandidateCard> waitingCandidates;
     @AuraEnabled
     public Integer waitingTotal;
+    @AuraEnabled
+    public List<CandidateCard> rejectedCandidates;
   }
 
   public class PipelineStageOverview {
@@ -411,6 +415,24 @@ public with sharing class CandidateReviewController {
 
     result.activeCandidates = buildCards(activeApps);
     enrichWithInterviewStatus(result.activeCandidates, stageId, stageNameById);
+
+    // Rejected at THIS stage
+    List<Job_Application__c> rejectedApps = [
+      SELECT
+        Id, Name, AI_Score__c, Skills_Match_Score__c, Experience_Score__c,
+        Education_Score__c, Selection_Status__c, Stage__c, Application_Date__c,
+        Extracted_Skills__c, Filter_Review_Status__c, Passed_Hard_Filter__c,
+        AI_Filter_Decision__c, Current_Interview_Stage__c, Filter_Rejection_Reason__c,
+        Candidate__r.FirstName__c, Candidate__r.LastName__c, Candidate__r.Name,
+        Candidate__r.Email__c, Candidate__r.Years_of_Experience__c,
+        Candidate__r.Education_Level__c, Extracted_Experience__c, Extracted_Education__c
+      FROM Job_Application__c
+      WHERE Job_Position__c = :jobPositionId
+        AND Current_Interview_Stage__c = :stageId
+        AND Stage__c = 'Rejected'
+      ORDER BY AI_Score__c DESC NULLS LAST
+    ];
+    result.rejectedCandidates = buildCards(rejectedApps);
 
     if (firstStage) {
       result.waitingTotal = [
@@ -1089,6 +1111,7 @@ public with sharing class CandidateReviewController {
       card.extractedExperience = app.Extracted_Experience__c;
       card.extractedEducation = app.Extracted_Education__c;
       card.applicationStage = app.Stage__c;
+      card.rejectionReason = app.Filter_Rejection_Reason__c;
       cards.add(card);
     }
     return cards;
