@@ -110,6 +110,22 @@ public with sharing class InterviewPipelineController {
                 ' candidate(s) are currently assigned to it. Move or reject them first.'
             );
         }
+        // Clear stage lookup on non-active applications
+        List<Job_Application__c> staleAppRefs = [
+            SELECT Id FROM Job_Application__c
+            WHERE Current_Interview_Stage__c = :stageId
+            WITH SYSTEM_MODE
+        ];
+        if (!staleAppRefs.isEmpty()) {
+            for (Job_Application__c app : staleAppRefs) {
+                app.Current_Interview_Stage__c = null;
+            }
+            update staleAppRefs;
+        }
+        // Delete child records that would block the stage delete
+        delete [SELECT Id FROM Interview__c WHERE Interview_Stage__c = :stageId WITH SYSTEM_MODE];
+        delete [SELECT Id FROM Availability_Slot__c WHERE Interview_Stage__c = :stageId WITH SYSTEM_MODE];
+        delete [SELECT Id FROM Interview_Stage_Team_Member__c WHERE Interview_Stage__c = :stageId WITH SYSTEM_MODE];
         delete new Interview_Stage__c(Id = stageId);
     }
 
