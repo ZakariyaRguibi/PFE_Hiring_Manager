@@ -416,7 +416,7 @@ public with sharing class CandidateReviewController {
     result.activeCandidates = buildCards(activeApps);
     enrichWithInterviewStatus(result.activeCandidates, stageId, stageNameById);
 
-    // Rejected at THIS stage
+    // Rejected at THIS stage, plus waiting-list rejections (null stage) on the first stage view
     List<Job_Application__c> rejectedApps = [
       SELECT
         Id, Name, AI_Score__c, Skills_Match_Score__c, Experience_Score__c,
@@ -428,10 +428,27 @@ public with sharing class CandidateReviewController {
         Candidate__r.Education_Level__c, Extracted_Experience__c, Extracted_Education__c
       FROM Job_Application__c
       WHERE Job_Position__c = :jobPositionId
-        AND Current_Interview_Stage__c = :stageId
         AND Stage__c = 'Rejected'
+        AND Current_Interview_Stage__c = :stageId
       ORDER BY AI_Score__c DESC NULLS LAST
     ];
+    if (firstStage) {
+      rejectedApps.addAll([
+        SELECT
+          Id, Name, AI_Score__c, Skills_Match_Score__c, Experience_Score__c,
+          Education_Score__c, Selection_Status__c, Stage__c, Application_Date__c,
+          Extracted_Skills__c, Filter_Review_Status__c, Passed_Hard_Filter__c,
+          AI_Filter_Decision__c, Current_Interview_Stage__c, Filter_Rejection_Reason__c,
+          Candidate__r.FirstName__c, Candidate__r.LastName__c, Candidate__r.Name,
+          Candidate__r.Email__c, Candidate__r.Years_of_Experience__c,
+          Candidate__r.Education_Level__c, Extracted_Experience__c, Extracted_Education__c
+        FROM Job_Application__c
+        WHERE Job_Position__c = :jobPositionId
+          AND Stage__c = 'Rejected'
+          AND Current_Interview_Stage__c = NULL
+        ORDER BY AI_Score__c DESC NULLS LAST
+      ]);
+    }
     result.rejectedCandidates = buildCards(rejectedApps);
 
     if (firstStage) {
