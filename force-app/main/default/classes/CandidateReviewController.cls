@@ -21,7 +21,8 @@ public with sharing class CandidateReviewController {
     'Candidate__r.Years_of_Experience__c',
     'Candidate__r.Education_Level__c',
     'Extracted_Experience__c',
-    'Extracted_Education__c'
+    'Extracted_Education__c',
+    'Filter_Rejection_Reason__c'
   };
 
   public class CandidateCard implements Comparable {
@@ -399,7 +400,8 @@ public with sharing class CandidateReviewController {
         Candidate__r.Years_of_Experience__c,
         Candidate__r.Education_Level__c,
         Extracted_Experience__c,
-        Extracted_Education__c
+        Extracted_Education__c,
+        Filter_Rejection_Reason__c
       FROM Job_Application__c
       WHERE
         Job_Position__c = :jobPositionId
@@ -484,7 +486,8 @@ public with sharing class CandidateReviewController {
           Candidate__r.Years_of_Experience__c,
           Candidate__r.Education_Level__c,
           Extracted_Experience__c,
-          Extracted_Education__c
+          Extracted_Education__c,
+          Filter_Rejection_Reason__c
         FROM Job_Application__c
         WHERE
           Job_Position__c = :jobPositionId
@@ -535,7 +538,8 @@ public with sharing class CandidateReviewController {
             Candidate__r.Years_of_Experience__c,
             Candidate__r.Education_Level__c,
             Extracted_Experience__c,
-            Extracted_Education__c
+            Extracted_Education__c,
+            Filter_Rejection_Reason__c
           FROM Job_Application__c
           WHERE
             Job_Position__c = :jobPositionId
@@ -615,7 +619,8 @@ public with sharing class CandidateReviewController {
         Candidate__r.Years_of_Experience__c,
         Candidate__r.Education_Level__c,
         Extracted_Experience__c,
-        Extracted_Education__c
+        Extracted_Education__c,
+        Filter_Rejection_Reason__c
       FROM Job_Application__c
       WHERE Job_Position__c = :jobPositionId AND Stage__c IN ('Offer', 'Hired')
       ORDER BY Stage__c ASC, Application_Date__c DESC NULLS LAST
@@ -648,7 +653,8 @@ public with sharing class CandidateReviewController {
           Candidate__r.Years_of_Experience__c,
           Candidate__r.Education_Level__c,
           Extracted_Experience__c,
-          Extracted_Education__c
+          Extracted_Education__c,
+          Filter_Rejection_Reason__c
         FROM Job_Application__c
         WHERE
           Job_Position__c = :jobPositionId
