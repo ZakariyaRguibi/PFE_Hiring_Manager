@@ -1,0 +1,330 @@
+<template>
+  <lightning-card title="My Availability" icon-name="standard:event">
+    <div slot="actions">
+      <lightning-button
+        variant="neutral"
+        label="Add Window"
+        icon-name="utility:add"
+        disabled={isPastWeek}
+        onclick={handleAddWindow}
+      >
+      </lightning-button>
+    </div>
+
+    <div class="slds-p-around_medium">
+      <!-- Week navigator -->
+      <div class="week-nav slds-m-bottom_small">
+        <lightning-button-group>
+          <lightning-button
+            label="Prev"
+            icon-name="utility:chevronleft"
+            onclick={handlePrevWeek}
+          >
+          </lightning-button>
+          <lightning-button
+            label="Today"
+            onclick={handleToday}
+            disabled={isCurrentWeek}
+          >
+          </lightning-button>
+          <lightning-button
+            label="Next"
+            icon-name="utility:chevronright"
+            icon-position="right"
+            onclick={handleNextWeek}
+          >
+          </lightning-button>
+        </lightning-button-group>
+        <span class="week-label slds-m-left_small">{weekLabel}</span>
+      </div>
+
+      <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+        Drag on any day to create a window. Click a window to block or activate
+        it.
+      </p>
+
+      <template lwc:if={isLoading}>
+        <lightning-spinner
+          alternative-text="Loading"
+          size="small"
+          class="slds-is-relative"
+        ></lightning-spinner>
+      </template>
+
+      <div class="planner" style="position: relative">
+        <!-- Time axis header -->
+        <div class="planner__header">
+          <div class="planner__day-label"></div>
+          <div class="planner__time-axis">
+            <template for:each={timeLabels} for:item="t">
+              <span key={t.label} class="time-tick" style={t.style}
+                >{t.label}</span
+              >
+            </template>
+          </div>
+        </div>
+
+        <!-- One row per day -->
+        <template for:each={calendarRows} for:item="row">
+          <div key={row.day} class="planner__row">
+            <div class="planner__day-label">
+              <span class={row.dayClass}>{row.shortLabel}</span>
+            </div>
+            <div
+              class={row.trackClass}
+              data-day={row.day}
+              onmousedown={handleTrackMouseDown}
+              onmousemove={handleTrackMouseMove}
+              onmouseup={handleTrackMouseUp}
+              onmouseleave={handleTrackMouseLeave}
+            >
+              <!-- Hour grid lines -->
+              <template for:each={timeLabels} for:item="t">
+                <div key={t.label} class="grid-line" style={t.lineStyle}></div>
+              </template>
+
+              <!-- Drag ghost -->
+              <template lwc:if={row.showGhost}>
+                <div
+                  class="time-block time-block--ghost"
+                  style={row.ghostStyle}
+                >
+                  <span class="block-label">{row.ghostLabel}</span>
+                </div>
+              </template>
+
+              <!-- Availability window blocks -->
+              <template for:each={row.windows} for:item="win">
+                <div
+                  key={win.Id}
+                  class={win.blockClass}
+                  style={win.blockStyle}
+                  title={win.tooltip}
+                >
+                  <span class="block-label"
+                    >{win.startLabel} – {win.endLabel}</span
+                  >
+                  <template lwc:if={row.isEditable}>
+                    <button
+                      class="win-menu__trigger"
+                      data-id={win.Id}
+                      onclick={handleMenuToggle}
+                      title="Actions"
+                    >⋮</button>
+                  </template>
+                </div>
+              </template>
+
+              <!-- Scheduled interview blocks -->
+              <template for:each={row.interviews} for:item="iv">
+                <div
+                  key={iv.interviewId}
+                  class={iv.blockClass}
+                  style={iv.blockStyle}
+                  title={iv.tooltip}
+                  data-id={iv.interviewId}
+                  onclick={handleInterviewClick}
+                >
+                  <div class="iv-block__accent"></div>
+                  <div class="iv-block__body">
+                    <span class="iv-block__name">{iv.candidateName}</span>
+                    <span class="iv-block__time">{iv.startLabel} – {iv.endLabel}</span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend slds-m-top_small">
+        <span class="legend-swatch legend-swatch--active"></span>
+        <span class="legend-label">Recurring</span>
+        <span
+          class="legend-swatch legend-swatch--onetime slds-m-left_small"
+        ></span>
+        <span class="legend-label">One-time</span>
+        <span
+          class="legend-swatch legend-swatch--interview slds-m-left_small"
+        ></span>
+        <span class="legend-label">Scheduled</span>
+        <span
+          class="legend-swatch legend-swatch--blocked slds-m-left_small"
+        ></span>
+        <span class="legend-label">Blocked</span>
+        <span class="legend-hint slds-m-left_medium"
+          >Drag on a row to add a window</span
+        >
+      </div>
+    </div>
+  </lightning-card>
+
+  <!-- Floating window actions menu -->
+  <template lwc:if={showMenu}>
+    <div class="win-menu__backdrop" onclick={handleMenuClose}></div>
+    <div class="win-menu__dropdown" style={menuStyle}>
+      <button class="win-menu__item" data-id={openMenuId} onclick={handleToggleBlock}>
+        <lightning-icon icon-name={menuWindow.toggleIcon} size="xx-small" alternative-text={menuWindow.toggleTitle}></lightning-icon>
+        <span>{menuWindow.toggleTitle}</span>
+      </button>
+      <button class="win-menu__item win-menu__item--danger" data-id={openMenuId} onclick={handleDelete}>
+        <lightning-icon icon-name="utility:delete" size="xx-small" alternative-text="Delete"></lightning-icon>
+        <span>Delete</span>
+      </button>
+    </div>
+  </template>
+
+  <!-- Interview detail side panel -->
+  <template lwc:if={showPanel}>
+    <div class="iv-panel-overlay" onclick={handleClosePanel}></div>
+    <div class="iv-panel">
+      <div class="iv-panel__header">
+        <h2 class="iv-panel__title">Interview Details</h2>
+        <button class="slds-button slds-button_icon iv-panel__close" onclick={handleClosePanel} title="Close">
+          <lightning-icon icon-name="utility:close" size="small" alternative-text="Close"></lightning-icon>
+        </button>
+      </div>
+
+      <div class="iv-panel__body">
+        <!-- Status badge -->
+        <div class="slds-m-bottom_small">
+          <span class={panelStatusBadgeClass}>{panelStatusLabel}</span>
+        </div>
+
+        <!-- Candidate section -->
+        <div class="iv-panel__section">
+          <p class="iv-panel__section-label">Candidate</p>
+          <p class="iv-panel__name">{selectedInterview.candidateName}</p>
+          <template lwc:if={selectedInterview.candidateEmail}>
+            <p class="iv-panel__meta">{selectedInterview.candidateEmail}</p>
+          </template>
+          <template lwc:if={panelExperienceLabel}>
+            <p class="iv-panel__meta">{panelExperienceLabel}</p>
+          </template>
+          <template lwc:if={selectedInterview.candidateEducation}>
+            <p class="iv-panel__meta">{selectedInterview.candidateEducation}</p>
+          </template>
+        </div>
+
+        <!-- Position & Stage -->
+        <div class="iv-panel__section">
+          <p class="iv-panel__section-label">Position</p>
+          <p class="iv-panel__name">{selectedInterview.jobPositionName}</p>
+          <p class="iv-panel__meta">{selectedInterview.stageName}</p>
+        </div>
+
+        <!-- Interview info -->
+        <div class="iv-panel__section">
+          <p class="iv-panel__section-label">Schedule</p>
+          <p class="iv-panel__meta">{selectedInterview.startLabel} – {selectedInterview.endLabel}</p>
+          <template lwc:if={panelScoreLabel}>
+            <p class="iv-panel__meta">Score: <strong>{panelScoreLabel}</strong></p>
+          </template>
+        </div>
+      </div>
+
+      <div class="iv-panel__footer">
+        <template lwc:if={panelHasMeetingLink}>
+          <lightning-button
+            variant="brand"
+            label="Join Meeting"
+            icon-name="utility:video"
+            onclick={handleOpenMeetingLink}
+            class="slds-m-bottom_x-small"
+          ></lightning-button>
+        </template>
+        <lightning-button
+          variant="neutral"
+          label="Open Record"
+          icon-name="utility:new_window"
+          onclick={handleOpenInterviewRecord}
+        ></lightning-button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Confirm modal after drag or manual add -->
+  <div class={modalClass}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button
+            class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+            onclick={handleCloseModal}
+          >
+            <lightning-icon
+              icon-name="utility:close"
+              alternative-text="Close"
+              size="small"
+            ></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Add Availability Window</h2>
+        </header>
+
+        <div class="slds-modal__content slds-p-around_medium">
+          <lightning-input
+            type="toggle"
+            label="Recurring every week"
+            checked={newWindow.isRecurring}
+            onchange={handleRecurringChange}
+            class="slds-m-bottom_small"
+            message-toggle-active="Repeats weekly"
+            message-toggle-inactive="This week only"
+          >
+          </lightning-input>
+
+          <lightning-combobox
+            label="Day of Week"
+            value={newWindow.Day_Of_Week__c}
+            options={dayOptions}
+            required
+            onchange={handleDayChange}
+          >
+          </lightning-combobox>
+
+          <div class="slds-grid slds-gutters slds-m-top_small">
+            <div class="slds-col">
+              <lightning-input
+                type="time"
+                label="From"
+                value={newWindow.startTime}
+                required
+                data-field="startTime"
+                onchange={handleTimeChange}
+              >
+              </lightning-input>
+            </div>
+            <div class="slds-col">
+              <lightning-input
+                type="time"
+                label="To"
+                value={newWindow.endTime}
+                required
+                data-field="endTime"
+                onchange={handleTimeChange}
+              >
+              </lightning-input>
+            </div>
+          </div>
+        </div>
+
+        <footer class="slds-modal__footer">
+          <lightning-button
+            label="Cancel"
+            onclick={handleCloseModal}
+          ></lightning-button>
+          <lightning-button
+            variant="brand"
+            label={saveLabel}
+            disabled={isSaving}
+            onclick={handleSave}
+            class="slds-m-left_x-small"
+          >
+          </lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </div>
+</template>
