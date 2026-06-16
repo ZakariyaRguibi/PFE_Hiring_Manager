@@ -1,23 +1,21 @@
 public without sharing class InterviewerAvailabilityController {
   public class ScheduledInterviewDTO {
-    @AuraEnabled
-    public String interviewId;
-    @AuraEnabled
-    public String status;
-    @AuraEnabled
-    public String stageName;
-    @AuraEnabled
-    public String candidateName;
-    @AuraEnabled
-    public String dayOfWeek;
-    @AuraEnabled
-    public String label;
-    @AuraEnabled
-    public DateTime startDt;
-    @AuraEnabled
-    public DateTime endDt;
-    @AuraEnabled
-    public Integer durationMinutes;
+    @AuraEnabled public String interviewId;
+    @AuraEnabled public String status;
+    @AuraEnabled public String stageName;
+    @AuraEnabled public String candidateName;
+    @AuraEnabled public String candidateEmail;
+    @AuraEnabled public String candidateEducation;
+    @AuraEnabled public Decimal candidateExperience;
+    @AuraEnabled public String jobPositionName;
+    @AuraEnabled public String applicationId;
+    @AuraEnabled public String meetingLink;
+    @AuraEnabled public Decimal score;
+    @AuraEnabled public String dayOfWeek;
+    @AuraEnabled public String label;
+    @AuraEnabled public DateTime startDt;
+    @AuraEnabled public DateTime endDt;
+    @AuraEnabled public Integer durationMinutes;
   }
 
   @AuraEnabled
@@ -469,10 +467,17 @@ public without sharing class InterviewerAvailabilityController {
           Id,
           Status__c,
           Scheduled_DateTime__c,
+          Score__c,
+          Meeting_Link__c,
           Interview_Stage__r.Name,
           Interview_Stage__r.Duration_Minutes__c,
+          Job_Application__c,
+          Job_Application__r.Job_Position__r.Title__c,
           Job_Application__r.Candidate__r.FirstName__c,
-          Job_Application__r.Candidate__r.LastName__c
+          Job_Application__r.Candidate__r.LastName__c,
+          Job_Application__r.Candidate__r.Email__c,
+          Job_Application__r.Candidate__r.Education_Level__c,
+          Job_Application__r.Candidate__r.Years_of_Experience__c
         FROM Interview__c
         WHERE
           Interviewer__c = :UserInfo.getUserId()
@@ -508,6 +513,13 @@ public without sharing class InterviewerAvailabilityController {
           (iv.Job_Application__r.Candidate__r.LastName__c != null
             ? iv.Job_Application__r.Candidate__r.LastName__c
             : '');
+        dto.candidateEmail      = iv.Job_Application__r.Candidate__r.Email__c;
+        dto.candidateEducation  = iv.Job_Application__r.Candidate__r.Education_Level__c;
+        dto.candidateExperience = iv.Job_Application__r.Candidate__r.Years_of_Experience__c;
+        dto.jobPositionName     = iv.Job_Application__r.Job_Position__r.Title__c;
+        dto.applicationId       = iv.Job_Application__c;
+        dto.meetingLink         = iv.Meeting_Link__c;
+        dto.score               = iv.Score__c;
         dto.dayOfWeek = dto.startDt.format('EEEE');
         dto.label = AvailabilitySlotService.formatSlotLabel(
           dto.startDt,
